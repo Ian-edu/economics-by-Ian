@@ -1,109 +1,105 @@
 import React, { useState, useEffect } from 'react';
 
-const BioChemQuiz = () => {
+const EconomicsQuiz = () => {
   const [currentScreen, setCurrentScreen] = useState('menu');
-  const [selectedSubject, setSelectedSubject] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [score, setScore] = useState(0);
   const [showExplanation, setShowExplanation] = useState(false);
   const [quizComplete, setQuizComplete] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(3600); // 1 hour in seconds
+  const [timeRemaining, setTimeRemaining] = useState(60);
   const [notifications, setNotifications] = useState([]);
-  const [answeredQuestions, setAnsweredQuestions] = useState({});
 
-  // BIOLOGY QUESTIONS (40+)
-  const biologyQuestions = [
-    { year: 2020, level: 'IGCSE', q: 'What is the function of mitochondria?', opts: ['A) Photosynthesis', 'B) ATP production', 'C) Protein synthesis', 'D) Storage'], ans: 'B', exp: 'Mitochondria are the powerhouse of cells, producing ATP through aerobic respiration to provide energy for cellular processes.', expCh: '线粒体是细胞的动力源，通过有氧呼吸产生ATP，为细胞过程提供能量。' },
-    { year: 2021, level: 'IGCSE', q: 'Which organelle contains chlorophyll?', opts: ['A) Nucleus', 'B) Chloroplast', 'C) Golgi', 'D) Lysosome'], ans: 'B', exp: 'Chloroplasts contain chlorophyll, a pigment that absorbs light energy for photosynthesis in plant cells.', expCh: '叶绿体含有叶绿素，这是一种在植物细胞中吸收光能进行光合作用的色素。' },
-    { year: 2022, level: 'IGCSE', q: 'What is DNA made of?', opts: ['A) Amino acids', 'B) Nucleotides', 'C) Glucose', 'D) Lipids'], ans: 'B', exp: 'DNA is composed of nucleotides, each containing a sugar (deoxyribose), phosphate group, and nitrogenous base.', expCh: 'DNA由核苷酸组成，每个核苷酸含有糖（脱氧核糖）、磷酸基团和含氮碱基。' },
-    { year: 2023, level: 'IGCSE', q: 'What is the primary function of ribosomes?', opts: ['A) DNA replication', 'B) Protein synthesis', 'C) Photosynthesis', 'D) Fat storage'], ans: 'B', exp: 'Ribosomes read mRNA and synthesize proteins by linking amino acids together in the correct sequence.', expCh: '核糖体读取mRNA并通过以正确的顺序连接氨基酸来合成蛋白质。' },
-    { year: 2024, level: 'IGCSE', q: 'What is the role of enzymes in cells?', opts: ['A) Store energy', 'B) Catalyze reactions', 'C) Transport materials', 'D) Provide structure'], ans: 'B', exp: 'Enzymes are biological catalysts that speed up chemical reactions without being consumed, lowering activation energy.', expCh: '酶是生物催化剂，加速化学反应而不被消耗，降低激活能。' },
+  // 100 UNIQUE A-LEVEL ECONOMICS QUESTIONS (2015-2026)
+  const economicsQuestions = [
+    { year: 2015, q: 'What is ceteris paribus?', opts: ['A) All things equal', 'B) All things changing', 'C) Market efficiency', 'D) Price elasticity'], ans: 'A', exp: 'Ceteris paribus means "all things equal" - assuming other variables remain constant to isolate the effect of one variable on another.', expCh: '其他条件不变是指"所有事物相等"——假设其他变量保持不变以隔离一个变量对另一个变量的影响。' },
+    { year: 2016, q: 'Which of the following shifts demand curve left?', opts: ['A) Decrease in income', 'B) Decrease in price', 'C) Increase in price', 'D) New competitor exits'], ans: 'A', exp: 'A decrease in income (for normal goods) shifts demand curve leftward, reducing quantity demanded at each price level.', expCh: '收入减少（对于正常商品）将需求曲线向左移动，减少每个价格水平的需求量。' },
+    { year: 2017, q: 'What does PED = 0.5 indicate?', opts: ['A) Elastic demand', 'B) Inelastic demand', 'C) Perfectly inelastic', 'D) Unit elastic'], ans: 'B', exp: 'PED = 0.5 is inelastic (|PED| < 1). Quantity demanded is relatively unresponsive to price changes. A 10% price increase causes 5% quantity decrease.', expCh: 'PED = 0.5是缺乏价格弹性（|PED| < 1）。需求量对价格变化反应不敏感。价格上升10%导致需求量下降5%。' },
+    { year: 2018, q: 'If XED = -0.8, what is the relationship?', opts: ['A) Substitute goods', 'B) Complementary goods', 'C) Independent goods', 'D) Normal goods'], ans: 'B', exp: 'Negative XED indicates complementary goods (consumed together). If good B price increases, demand for good A decreases.', expCh: '负XED表示互补商品（一起消费）。如果商品B价格上升，对商品A的需求会减少。' },
+    { year: 2019, q: 'What is income elasticity for inferior goods?', opts: ['A) Positive', 'B) Negative', 'C) Zero', 'D) Greater than 1'], ans: 'B', exp: 'Inferior goods have negative income elasticity. As income rises, demand decreases (e.g., beans, cheap clothing). Inferior ≠ low quality.', expCh: '劣质商品具有负收入弹性。随着收入增加，需求减少（例如，豆类、便宜衣服）。劣质≠低质量。' },
+    { year: 2020, q: 'How do you calculate total revenue?', opts: ['A) Price ÷ Quantity', 'B) Price × Quantity', 'C) Price - Quantity', 'D) Quantity ÷ Price'], ans: 'B', exp: 'Total Revenue (TR) = Price × Quantity. If Price = £10, Quantity = 100 units, then TR = £1000.', expCh: '总收益（TR）= 价格×数量。如果价格 = £10，数量 = 100单位，则TR = £1000。' },
+    { year: 2021, q: 'What is allocative efficiency?', opts: ['A) Minimum production cost', 'B) Resources allocated to produce what consumers want', 'C) Maximum profit', 'D) Zero waste'], ans: 'B', exp: 'Allocative efficiency: resources are allocated to produce goods/services that maximize consumer satisfaction (P = MC at optimal output).', expCh: '配置效率：资源被分配来生产最大化消费者满足的商品/服务（P = MC在最优产出处）。' },
+    { year: 2022, q: 'What causes productive inefficiency?', opts: ['A) Perfect competition', 'B) Unemployment of resources', 'C) Market equilibrium', 'D) Price controls'], ans: 'B', exp: 'Productive inefficiency occurs when resources are unemployed or underemployed, preventing production on PPF. Includes unemployment, underutilization.', expCh: '生产性无效率发生在资源失业或未充分就业时，防止在PPF上生产。包括失业、未充分利用。' },
+    { year: 2023, q: 'Which market structure has differentiated products?', opts: ['A) Perfect competition', 'B) Monopoly', 'C) Monopolistic competition', 'D) Oligopoly'], ans: 'C', exp: 'Monopolistic competition has many firms with differentiated products. Each firm has some price-making power but many close substitutes exist.', expCh: '垄断竞争有许多具有差异化产品的企业。每个企业都有一定的价格制定权，但存在许多近似替代品。' },
+    { year: 2024, q: 'What is natural monopoly?', opts: ['A) Illegal monopoly', 'B) One firm has lowest AC across all output', 'C) Market monopoly', 'D) Temporary monopoly'], ans: 'B', exp: 'Natural monopoly: one firm can produce at lower AC than multiple firms. Common in utilities (water, electricity) due to high fixed costs.', expCh: '自然垄断：一个企业可以以比多个企业更低的AC成本生产。在公用事业（水、电）中常见，因为固定成本高。' },
+    { year: 2025, q: 'What is perfect competition\'s main characteristic?', opts: ['A) Few sellers', 'B) Price makers', 'C) Many firms, homogeneous products', 'D) Barriers to entry'], ans: 'C', exp: 'Perfect competition: many sellers, homogeneous products, free entry/exit, perfect information, firms are price takers (P = AR = MR).', expCh: '完全竞争：许多卖方、同质产品、自由进退、完全信息、企业是价格接受者（P = AR = MR）。' },
+    { year: 2026, q: 'In monopoly, what is the profit-maximizing condition?', opts: ['A) P = AC', 'B) MR = MC', 'C) P = MR', 'D) TR = TC'], ans: 'B', exp: 'All firms maximize profit where MR = MC. Monopoly then charges price from demand curve at that quantity, earning supernormal profit if P > AC.', expCh: '所有企业在MR = MC处最大化利润。垄断者然后从需求曲线的那个数量处收费，如果P > AC则获得超正常利润。' },
     
-    { year: 2020, level: 'A-level', q: 'Describe the process of meiosis.', opts: ['A) One division producing identical cells', 'B) Two divisions producing haploid cells', 'C) One division producing haploid cells', 'D) Three divisions'], ans: 'B', exp: 'Meiosis involves two successive divisions (Meiosis I and II) producing four non-identical haploid cells from one diploid cell.', expCh: '减数分裂涉及两次连续分裂，从一个二倍体细胞产生四个不同的单倍体细胞。' },
-    { year: 2021, level: 'A-level', q: 'What is the role of tRNA in translation?', opts: ['A) Carry genetic code', 'B) Transport amino acids', 'C) Catalyze peptide bonds', 'D) Unwind DNA'], ans: 'B', exp: 'tRNA molecules have an anticodon that binds to mRNA codons and carry specific amino acids to the ribosome.', expCh: 'tRNA分子具有与mRNA密码子结合的反密码子，并将特定的氨基酸携带到核糖体。' },
-    { year: 2022, level: 'A-level', q: 'Explain photosynthesis equation:', opts: ['A) C6H12O6 + O2 → CO2 + H2O', 'B) 6CO2 + 6H2O → C6H12O6 + 6O2', 'C) C6H12O6 → 2C2H5OH + 2CO2', 'D) C6H12O6 + 6O2 → 6CO2 + 6H2O'], ans: 'B', exp: 'Photosynthesis equation: 6CO2 + 6H2O + light → C6H12O6 + 6O2. Plants use CO2 and water to produce glucose and oxygen.', expCh: '光合作用方程式：6CO2 + 6H2O + 光 → C6H12O6 + 6O2。植物利用CO2和水生产葡萄糖和氧气。' },
-    { year: 2023, level: 'A-level', q: 'What is genetic recombination?', opts: ['A) Mutation of DNA', 'B) Exchange of genetic material', 'C) Duplication of genes', 'D) Gene expression'], ans: 'B', exp: 'Genetic recombination is the exchange of DNA sequences between chromosomes during meiosis, creating variation in offspring.', expCh: '遗传重组是减数分裂期间染色体之间的DNA序列交换，在后代中产生变异。' },
-    { year: 2024, level: 'A-level', q: 'Describe the structure of a chromosome:', opts: ['A) Single DNA strand', 'B) DNA + proteins (histones)', 'C) RNA and proteins', 'D) Only proteins'], ans: 'B', exp: 'A chromosome consists of DNA wrapped around histone proteins. The DNA-histone complex forms nucleosomes, which coil to form chromosomes.', expCh: '染色体由缠绕在组蛋白周围的DNA组成。DNA-组蛋白复合体形成核小体，它们卷成染色体。' },
+    { year: 2015, q: 'What is consumer surplus?', opts: ['A) Extra profit for consumer', 'B) Difference between price willing to pay and actual price', 'C) Total consumer spending', 'D) Consumer savings'], ans: 'B', exp: 'Consumer surplus = Maximum price willing to pay - Actual price paid. Area below demand curve and above market price.', expCh: '消费者剩余 = 愿意支付的最高价格 - 实际支付的价格。在需求曲线下方和市场价格上方的区域。' },
+    { year: 2016, q: 'What is deadweight loss?', opts: ['A) Total loss of wealth', 'B) Welfare loss from market inefficiency', 'C) Consumer loss only', 'D) Producer loss only'], ans: 'B', exp: 'Deadweight loss: loss of economic efficiency. Occurs in monopoly, externalities, taxes, price controls - total surplus not maximized.', expCh: '无谓损失：经济效率的损失。发生在垄断、外部性、税收、价格控制中——总剩余未最大化。' },
+    { year: 2017, q: 'What is price floor?', opts: ['A) Minimum price set by government', 'B) Maximum price allowed', 'C) Market equilibrium price', 'D) Production cost'], ans: 'A', exp: 'Price floor: minimum price set above equilibrium (e.g., minimum wage £10.42). Creates surplus if binding. Prevents prices falling.', expCh: '价格下限：政府设定的最低价格，高于均衡价格（例如，最低工资£10.42）。如果约束则造成过剩。' },
+    { year: 2018, q: 'What is negative externality?', opts: ['A) External cost to third party', 'B) Negative profit', 'C) Negative demand', 'D) Negative income'], ans: 'A', exp: 'Negative externality: cost imposed on third party not reflected in market price. Example: pollution from factory affecting nearby residents.', expCh: '负外部性：对第三方施加的成本未反映在市场价格中。例如：工厂污染影响附近居民。' },
+    { year: 2019, q: 'What policy corrects negative externality?', opts: ['A) Subsidy', 'B) Tax (Pigouvian)', 'C) Price floor', 'D) Deregulation'], ans: 'B', exp: 'Pigouvian tax: tax on polluters reduces quantity, internalizing the externality. Makes private cost = social cost, achieving allocative efficiency.', expCh: 'Pigouvian税：对污染者征税减少数量，内部化外部性。使私人成本 = 社会成本，实现配置效率。' },
+    { year: 2020, q: 'What is public good characteristic?', opts: ['A) Excludable and rival', 'B) Non-excludable and non-rival', 'C) Produced by government', 'D) Free to consume'], ans: 'B', exp: 'Public goods: non-excludable (cannot prevent use) and non-rival (consumption doesn\'t reduce availability). Examples: national defense, lighthouse.', expCh: '公共商品：非排他性（无法阻止使用）和非竞争性（消费不会减少可用性）。例如：国防、灯塔。' },
+    { year: 2021, q: 'What causes market failure?', opts: ['A) Perfect competition', 'B) Externalities, monopoly, public goods, asymmetric info', 'C) Price controls', 'D) Free market'], ans: 'B', exp: 'Market failures: externalities, monopoly power, public goods, information asymmetry, factor immobility - prevent allocative efficiency.', expCh: '市场失灵：外部性、垄断权、公共商品、信息不对称、要素缺乏流动性——阻止配置效率。' },
+    { year: 2022, q: 'What is information asymmetry?', opts: ['A) Equal information for all', 'B) One party has more/better info than other', 'C) No information available', 'D) Perfect knowledge'], ans: 'B', exp: 'Information asymmetry: one party has better information (e.g., seller knows car quality, buyer doesn\'t). Can cause adverse selection or moral hazard.', expCh: '信息不对称：一方拥有更好的信息（例如，卖方知道汽车质量，买方不知道）。可能导致逆向选择或道德风险。' },
+    { year: 2023, q: 'What is merit good?', opts: ['A) Profitable good', 'B) Good underconsumed due to positive externality', 'C) Good overconsumed', 'D) Normal good'], ans: 'B', exp: 'Merit goods: positive externalities cause underestimation of benefits (education, healthcare). Government subsidizes to encourage consumption.', expCh: '可取性商品：正外部性导致利益被低估（教育、医疗）。政府补贴以鼓励消费。' },
+    { year: 2024, q: 'What is demerit good?', opts: ['A) Worthless good', 'B) Good overconsumed due to negative externality', 'C) Good underconsumed', 'D) Luxury good'], ans: 'B', exp: 'Demerit goods: negative externalities cause overconsumption (cigarettes, alcohol). Government taxes/bans to discourage consumption.', expCh: '劣质商品：负外部性导致过度消费（烟草、酒精）。政府征税/禁止以阻止消费。' },
+    { year: 2025, q: 'What is opportunity cost?', opts: ['A) Cost of production', 'B) Value of next best alternative foregone', 'C) Actual money spent', 'D) Variable cost'], ans: 'B', exp: 'Opportunity cost: value of next best alternative you give up. If you study, opportunity cost = potential earnings from working.', expCh: '机会成本：你放弃的次优选择的价值。如果你学习，机会成本 = 工作的潜在收益。' },
+    { year: 2026, q: 'What is comparative advantage?', opts: ['A) Lower absolute cost', 'B) Produces with lower opportunity cost', 'C) Best at everything', 'D) Lowest price'], ans: 'B', exp: 'Comparative advantage: ability to produce at lower opportunity cost. Basis for mutually beneficial trade even if one country is more efficient.', expCh: '比较优势：以较低机会成本生产的能力。即使一个国家效率更高，也是互利贸易的基础。' },
+    
+    { year: 2015, q: 'What is macroeconomics?', opts: ['A) Study of individual markets', 'B) Study of economy as a whole', 'C) Study of costs', 'D) Study of firms'], ans: 'B', exp: 'Macroeconomics studies aggregate phenomena: national output (GDP), unemployment, inflation, monetary/fiscal policy, international trade.', expCh: '宏观经济学研究总体现象：国民产出（GDP）、失业、通货膨胀、货币/财政政策、国际贸易。' },
+    { year: 2016, q: 'What is GDP?', opts: ['A) Gross national product', 'B) Total value of goods produced in year', 'C) Total value added in economy in year', 'D) Total spending'], ans: 'C', exp: 'GDP = Total value of all goods/services produced in country in year. Can be measured by: expenditure (AD), income, output approaches.', expCh: 'GDP = 一年内国家生产的所有商品/服务的总价值。可以通过以下方式衡量：支出（AD）、收入、产出方法。' },
+    { year: 2017, q: 'What is nominal vs real GDP?', opts: ['A) Nominal accounts for inflation', 'B) Real accounts for inflation', 'C) Same thing', 'D) Nominal = production'], ans: 'B', exp: 'Nominal GDP = current prices. Real GDP = adjusted for inflation (constant prices). Real GDP shows true growth by excluding price changes.', expCh: '名义GDP = 当前价格。实际GDP = 按通货膨胀调整（恒定价格）。实际GDP通过排除价格变化显示真实增长。' },
+    { year: 2018, q: 'What is aggregate demand?', opts: ['A) Total output supplied', 'B) Total demand for all goods/services in economy', 'C) Individual demand', 'D) Supply side'], ans: 'B', exp: 'Aggregate demand = C + I + G + (X - M). Total spending on goods/services. Downward sloping due to income effect and substitution effect.', expCh: '总需求 = C + I + G +（X - M）。对商品/服务的总支出。由于收入效应和替代效应而向下倾斜。' },
+    { year: 2019, q: 'What shifts AD curve right?', opts: ['A) Higher interest rates', 'B) Increase in consumer confidence', 'C) Decrease in exports', 'D) Rising prices'], ans: 'B', exp: 'Rightward AD shift: higher confidence, lower interest rates, more government spending, higher exports, higher investment expectations.', expCh: '总需求曲线向右移动：更高的信心、更低的利率、更多政府支出、更高的出口、更高的投资预期。' },
+    { year: 2020, q: 'What is aggregate supply?', opts: ['A) Individual supply', 'B) Total supply of all goods/services', 'C) Production capacity', 'D) Export supply'], ans: 'B', exp: 'Aggregate supply (AS): total output economy willing to produce at each price level. Short-run (upward sloping) vs long-run (vertical at full employment).', expCh: '总供给（AS）：经济愿意以每个价格水平生产的总产出。短期（向上倾斜）与长期（充分就业时垂直）。' },
+    { year: 2021, q: 'What is potential output (full employment)?', opts: ['A) Maximum possible output', 'B) Output when unemployment = zero', 'C) Output when all resources fully used', 'D) Natural level of output'], ans: 'C', exp: 'Potential output: output achieved when all resources fully utilized at natural rate of unemployment (typically 4-5% due to frictional unemployment).', expCh: '潜在产出：当所有资源以自然失业率（通常为4-5%，由于摩擦性失业）完全利用时实现的产出。' },
+    { year: 2022, q: 'What is demand-pull inflation?', opts: ['A) Cost-push inflation', 'B) Too much money chasing too few goods', 'C) Supply shock', 'D) Wage push'], ans: 'B', exp: 'Demand-pull inflation: "too much money chasing too few goods". Occurs when AD > AS. Excess aggregate demand pulls prices up.', expCh: '需求拉动通货膨胀："太多钱追逐太少商品"。当AD > AS时发生。过度总需求推高价格。' },
+    { year: 2023, q: 'What is cost-push inflation?', opts: ['A) Demand too high', 'B) Rising production costs force price increases', 'C) Falling demand', 'D) Rising profits'], ans: 'B', exp: 'Cost-push inflation: rising costs (wages, raw materials) force firms to raise prices despite constant/falling demand. Leftward AS shift.', expCh: '成本推动通货膨胀：上升的成本（工资、原材料）迫使企业提高价格，尽管需求恒定/下降。AS向左移动。' },
+    { year: 2024, q: 'What is unemployment rate?', opts: ['A) Total without jobs', 'B) Percentage of economically active without jobs', 'C) People not looking for work', 'D) Jobs available'], ans: 'B', exp: 'Unemployment rate = (Number of unemployed ÷ Economically active population) × 100%. Excludes those not seeking work (students, retirees).', expCh: '失业率 = （失业人数÷经济活跃人口）× 100％。排除不寻求工作的人（学生、退休人员）。' },
+    { year: 2025, q: 'What is frictional unemployment?', opts: ['A) Job loss due to recession', 'B) Temporary unemployment between jobs', 'C) Skill mismatch', 'D) Structural unemployment'], ans: 'B', exp: 'Frictional unemployment: temporary joblessness while changing jobs, searching for new work. Natural part of economy even at full employment.', expCh: '摩擦性失业：在更换工作、寻找新工作时的临时性失业。即使充分就业，也是经济的自然部分。' },
+    { year: 2026, q: 'What is structural unemployment?', opts: ['A) Seasonal unemployment', 'B) Long-term due to skill/geographic mismatch', 'C) Temporary unemployment', 'D) Cyclical'], ans: 'B', exp: 'Structural unemployment: long-term job loss when skills don\'t match available jobs (de-industrialization, technological change). Requires retraining.', expCh: '结构性失业：当技能与可用工作不匹配时的长期失业（去工业化、技术变化）。需要再培训。' },
 
-    { year: 2020, level: 'IGCSE', q: 'What are lipids primarily used for?', opts: ['A) Energy storage and insulation', 'B) Protein synthesis', 'C) DNA replication', 'D) Gas exchange'], ans: 'A', exp: 'Lipids store energy (9 kcal/g), provide insulation, and form cell membranes. They are hydrophobic molecules composed of fatty acids and glycerol.', expCh: '脂肪储存能量（9 kcal/g），提供绝缘，并形成细胞膜。它们是由脂肪酸和甘油组成的疏水分子。' },
-    { year: 2021, level: 'IGCSE', q: 'Which process produces glucose from CO2 and H2O?', opts: ['A) Respiration', 'B) Photosynthesis', 'C) Fermentation', 'D) Digestion'], ans: 'B', exp: 'Photosynthesis uses light energy to convert CO2 and water into glucose. It occurs in chloroplasts and is essential for life on Earth.', expCh: '光合作用使用光能将CO2和水转化为葡萄糖。它发生在叶绿体中，对地球上的生命至关重要。' },
-    { year: 2022, level: 'IGCSE', q: 'What is the function of the cell membrane?', opts: ['A) DNA storage', 'B) Regulate entry/exit of substances', 'C) Protein production', 'D) Energy production'], ans: 'B', exp: 'The cell membrane (phospholipid bilayer with proteins) controls what enters and exits the cell, maintaining homeostasis through selective permeability.', expCh: '细胞膜（由磷脂双分子层和蛋白质组成）控制进出细胞的物质，通过选择性通透维持稳定状态。' },
-    { year: 2023, level: 'IGCSE', q: 'What is the main function of carbohydrates?', opts: ['A) Transport', 'B) Energy and structure', 'C) Defense', 'D) Insulation only'], ans: 'B', exp: 'Carbohydrates provide energy (4 kcal/g) and structural support. Glucose is used for energy, while cellulose provides plant cell strength.', expCh: '碳水化合物提供能量（4 kcal/g）和结构支持。葡萄糖用于能量，纤维素提供植物细胞强度。' },
-    { year: 2024, level: 'IGCSE', q: 'What is the purpose of mitosis?', opts: ['A) Produce gametes', 'B) Growth and repair', 'C) Increase variation', 'D) Reduce chromosomes'], ans: 'B', exp: 'Mitosis produces two identical daughter cells from one parent cell. It is essential for growth, repair, and asexual reproduction.', expCh: '有丝分裂从一个亲细胞产生两个相同的子细胞。它对生长、修复和无性繁殖至关重要。' },
+    { year: 2015, q: 'What is monetary policy?', opts: ['A) Government spending policy', 'B) Central bank controlling money supply/interest rates', 'C) Tax policy', 'D) Regulation'], ans: 'B', exp: 'Monetary policy: central bank (e.g., Bank of England) controls money supply and interest rates to achieve price stability and full employment.', expCh: '货币政策：中央银行（例如，英国央行）控制货币供应量和利率以实现价格稳定和充分就业。' },
+    { year: 2016, q: 'What is expansionary monetary policy?', opts: ['A) Raising interest rates', 'B) Lowering money supply', 'C) Increasing money supply/lowering rates', 'D) Reducing demand'], ans: 'C', exp: 'Expansionary (loose) monetary policy: increase money supply, lower interest rates → more borrowing, spending, investment → boost AD and growth.', expCh: '扩张性货币政策：增加货币供应量、降低利率→更多借贷、支出、投资→提升总需求和增长。' },
+    { year: 2017, q: 'What is contractionary monetary policy?', opts: ['A) Lowering interest rates', 'B) Increasing money supply', 'C) Reducing money supply/raising rates', 'D) Boosting demand'], ans: 'C', exp: 'Contractionary (tight) monetary policy: reduce money supply, raise interest rates → less borrowing, spending, investment → reduce AD and inflation.', expCh: '紧缩货币政策：减少货币供应量、提高利率→较少借贷、支出、投资→减少总需求和通货膨胀。' },
+    { year: 2018, q: 'What is fiscal policy?', opts: ['A) Monetary control', 'B) Government spending and tax decisions', 'C) Central bank policy', 'D) Trade policy'], ans: 'B', exp: 'Fiscal policy: government uses spending (G) and taxation (T) to influence aggregate demand and stabilize economy (demand management).', expCh: '财政政策：政府使用支出（G）和税收（T）来影响总需求和稳定经济（需求管理）。' },
+    { year: 2019, q: 'What is expansionary fiscal policy?', opts: ['A) Higher taxes', 'B) Cutting spending', 'C) Increased spending/tax cuts', 'D) Contractionary'], ans: 'C', exp: 'Expansionary fiscal policy: increase G or decrease T → boost disposable income → increased consumption and AD → higher output and employment.', expCh: '扩张性财政政策：增加G或减少T→提升可支配收入→增加消费和总需求→更高的产出和就业。' },
+    { year: 2020, q: 'What is the multiplier effect?', opts: ['A) Increase in spending once only', 'B) Increase in AD more than initial injection', 'C) Multiplying supply', 'D) Doubling prices'], ans: 'B', exp: 'Multiplier: initial injection (£1m spending) creates larger increase in AD/income as recipients spend, others spend, etc. Formula: k = 1/(1-MPC).', expCh: '乘数：初始注入（£1百万支出）随着接收者支出、他人支出等，创造更大的总需求/收入增加。公式：k = 1/(1-MPC)。' },
+    { year: 2021, q: 'What is import leakage?', opts: ['A) Exports increase', 'B) Money leaves economy to buy imports', 'C) Savings', 'D) Taxes'], ans: 'B', exp: 'Import leakage: spending on foreign goods leaves circular flow, reducing multiplier effect. Formula: multiplier reduced by MPM (marginal propensity to import).', expCh: '进口泄漏：对外国商品的支出离开循环流，减少乘数效应。公式：乘数因进口边际倾向而减少。' },
+    { year: 2022, q: 'What is crowding out?', opts: ['A) Increased demand', 'B) Government borrowing raises interest rates, private investment falls', 'C) Supply increase', 'D) Price decrease'], ans: 'B', exp: 'Crowding out: government spending requires borrowing → interest rates rise → private investment decreases (expensive to borrow). Net effect on AD uncertain.', expCh: '挤出效应：政府支出需要借贷→利率上升→私人投资减少（借贷昂贵）。对总需求的净影响不确定。' },
+    { year: 2023, q: 'What is automatic stabilizer?', opts: ['A) Government discretionary spending', 'B) Built-in mechanism reducing fluctuations', 'C) Monetary policy', 'D) Price control'], ans: 'B', exp: 'Automatic stabilizers: welfare, unemployment benefits, progressive taxes automatically dampen recessions (more spending in recession) without discretionary action.', expCh: '自动稳定器：福利、失业救济、累进税自动缓冲衰退（衰退期更多支出）而不需要自主行动。' },
+    { year: 2024, q: 'What is Phillips curve?', opts: ['A) Supply curve', 'B) Shows inverse relationship between inflation and unemployment', 'C) Demand curve', 'D) Cost curve'], ans: 'B', exp: 'Phillips curve: inverse relationship between inflation and unemployment rate. Lower unemployment → higher inflation (wage/price pressures).', expCh: 'Phillips曲线：通货膨胀和失业率之间的反比关系。失业率较低→通货膨胀率较高（工资/价格压力）。' },
+    { year: 2025, q: 'What is stagflation?', opts: ['A) High growth', 'B) High inflation and high unemployment simultaneously', 'C) Low inflation', 'D) Perfect economy'], ans: 'B', exp: 'Stagflation: combination of stagnation (slow growth) and inflation. Occurred 1970s from oil shocks. Difficult for policymakers (conflict between goals).', expCh: '滞胀：停滞（缓慢增长）和通货膨胀的组合。1970年代由石油冲击引起。对决策者来说很困难（目标冲突）。' },
+    { year: 2026, q: 'What is exchange rate appreciation?', opts: ['A) Exchange rate falls', 'B) Currency becomes stronger/worth more', 'C) Imports more expensive', 'D) Trade deficit'], ans: 'B', exp: 'Appreciation: currency strengthens (£1 = $1.40 → $1.50). Exports less competitive, imports cheaper. Reduces net exports, AD, but helps fight inflation.', expCh: '升值：货币走强（£1 = $1.40 → $1.50）。出口竞争力下降，进口更便宜。减少净出口、总需求，但有助于对抗通货膨胀。' },
 
-    { year: 2020, level: 'IGCSE', q: 'What is the Golgi apparatus responsible for?', opts: ['A) Photosynthesis', 'B) Packaging and shipping proteins', 'C) DNA replication', 'D) Muscle contraction'], ans: 'B', exp: 'The Golgi apparatus modifies and packages proteins and lipids from the endoplasmic reticulum into vesicles for transport.', expCh: 'Golgi仪器修改和包装来自内质网的蛋白质和脂肪到囊泡中进行运输。' },
-    { year: 2021, level: 'IGCSE', q: 'What is the role of lysosomes?', opts: ['A) Protein synthesis', 'B) Breakdown of waste', 'C) Photosynthesis', 'D) Movement'], ans: 'B', exp: 'Lysosomes contain digestive enzymes that break down cellular waste and dead organelles in a process called autophagy.', expCh: '溶酶体含有消化酶，在一个称为自噬的过程中分解细胞废物和死亡的细胞器。' },
-    { year: 2022, level: 'IGCSE', q: 'What is diffusion?', opts: ['A) Active transport', 'B) Movement from high to low concentration', 'C) Carrier protein movement', 'D) Endocytosis'], ans: 'B', exp: 'Diffusion is passive movement of molecules from high to low concentration. It does not require energy (ATP) and is driven by molecular motion.', expCh: '扩散是分子从高浓度到低浓度的被动运动。它不需要能量（ATP），由分子运动驱动。' },
-    { year: 2023, level: 'IGCSE', q: 'What is osmosis?', opts: ['A) Active transport of glucose', 'B) Diffusion of water', 'C) Movement of gases', 'D) Protein transport'], ans: 'B', exp: 'Osmosis is the diffusion of water across a partially permeable membrane from lower to higher solute concentration.', expCh: '渗透是水通过半透膜从低溶质浓度扩散到高溶质浓度。' },
-    { year: 2024, level: 'IGCSE', q: 'What does the nucleus control?', opts: ['A) Photosynthesis', 'B) Gene expression and metabolism', 'C) Digestion', 'D) Movement'], ans: 'B', exp: 'The nucleus controls all cellular activities by regulating gene expression. It contains DNA and directs protein synthesis.', expCh: '细胞核通过调节基因表达来控制所有细胞活动。它含有DNA并指导蛋白质合成。' },
+    { year: 2015, q: 'What is current account?', opts: ['A) Government accounts', 'B) Goods, services, income, transfers', 'C) Investment only', 'D) Capital accounts'], ans: 'B', exp: 'Current account = trade in goods + trade in services + income (interest, dividends) + transfers. Deficit = importing more than exporting.', expCh: '经常账户 = 商品贸易+服务贸易+收入（利息、股息）+转账。赤字 = 进口多于出口。' },
+    { year: 2016, q: 'What is capital account?', opts: ['A) Current transactions', 'B) Investment in assets, shares, bonds, FDI', 'C) Trade deficit', 'D) Exports'], ans: 'B', exp: 'Capital account = foreign direct investment (FDI), portfolio investment (shares/bonds), loans. Surplus = more capital inflows than outflows.', expCh: '资本账户 = 外国直接投资（FDI）、投资组合投资（股票/债券）、贷款。盈余 = 资本流入多于流出。' },
+    { year: 2017, q: 'What is balance of payments?', opts: ['A) Current account only', 'B) Current + Capital account', 'C) Trade balance', 'D) Exports minus imports'], ans: 'B', exp: 'Balance of payments = Current account + Capital account. Must balance: (Current surplus = Capital deficit) or (Current deficit = Capital surplus).', expCh: '国际收支平衡 = 经常账户+资本账户。必须平衡：（经常盈余 = 资本赤字）或（经常赤字 = 资本盈余）。' },
+    { year: 2018, q: 'What is trade deficit?', opts: ['A) More exports than imports', 'B) More imports than exports', 'C) Trade surplus', 'D) Balanced trade'], ans: 'B', exp: 'Trade deficit: Imports > Exports (e.g., UK imports £50bn, exports £40bn = £10bn deficit). Can be financed by capital inflows.', expCh: '贸易赤字：进口>出口（例如，英国进口£50亿，出口£40亿 = £10亿赤字）。可由资本流入融资。' },
+    { year: 2019, q: 'What is protectionism?', opts: ['A) Free trade', 'B) Government restricts imports via tariffs/quotas', 'C) Trade agreements', 'D) Exports increase'], ans: 'B', exp: 'Protectionism: tariffs (taxes), quotas (quantity limits), subsidies to domestic producers. Protects domestic industry but raises prices for consumers.', expCh: '保护主义：关税（税）、配额（数量限制）、对国内生产商的补贴。保护国内产业，但提高消费者价格。' },
+    { year: 2020, q: 'What is infant industry argument?', opts: ['A) Allows all protectionism', 'B) Protect new industries until competitive', 'C) Child labor', 'D) Temporary trade'], ans: 'B', exp: 'Infant industry: temporary protectionism for new industries until they achieve economies of scale and become competitive globally. Then removed.', expCh: '幼稚产业：对新产业的临时保护，直到它们实现规模经济并全球竞争力。然后移除。' },
+    { year: 2021, q: 'What is free trade benefit?', opts: ['A) Domestic job protection', 'B) Specialization, comparative advantage, lower prices', 'C) Rising prices', 'D) Inefficiency'], ans: 'B', exp: 'Free trade benefits: specialization based on comparative advantage, greater choice, lower prices, efficiency. Consumer surplus increases overall.', expCh: '自由贸易好处：基于比较优势的专业化、更大选择、更低价格、效率。消费者剩余整体增加。' },
+    { year: 2022, q: 'What is globalisation?', opts: ['A) Trade barriers increase', 'B) Increasing economic integration worldwide', 'C) Protectionism', 'D) Isolationism'], ans: 'B', exp: 'Globalisation: increasing international trade, FDI, multinational corporations, free movement of capital/labor, cultural/technological exchange globally.', expCh: '全球化：国际贸易、对外直接投资、跨国公司、资本/劳动力全球自由流动、文化/技术交换增加。' },
+    { year: 2023, q: 'What is trading blocs effect?', opts: ['A) Increases trade with non-members', 'B) Trade creation and trade diversion', 'C) Always beneficial', 'D) No effect'], ans: 'B', exp: 'Trading blocs (EU, NAFTA): trade creation (increase efficiency) but trade diversion (shift from cheaper non-members to expensive members). Net effect ambiguous.', expCh: '贸易集团（EU、NAFTA）：贸易创造（增加效率）但贸易转向（从便宜的非成员转向昂贵成员）。净效应不明确。' },
+    { year: 2024, q: 'What is terms of trade?', opts: ['A) Trade agreement', 'B) Ratio of export to import prices', 'C) Trade deficit', 'D) Trade policies'], ans: 'B', exp: 'Terms of trade = Export price index ÷ Import price index. Improvement = exporting higher-priced goods, importing cheaper goods = beneficial.', expCh: '贸易条件 = 出口价格指数÷进口价格指数。改善 = 出口更高价格的商品、进口便宜商品 = 有利。' },
+    { year: 2025, q: 'What is exchange rate fixed vs floating?', opts: ['A) Same thing', 'B) Fixed = government sets value, Floating = market determines', 'C) Floating = government control', 'D) Fixed = no government'], ans: 'B', exp: 'Fixed rate: government/central bank maintains constant exchange rate (rare now). Floating: market determines through supply/demand (most countries now).', expCh: '固定汇率：政府/中央银行维持恒定汇率（现在很少）。浮动：市场通过供给/需求确定（现在大多数国家）。' },
+    { year: 2026, q: 'What is revaluation?', opts: ['A) Fixed rate increases', 'B) Currency strengthens in fixed system', 'C) Devaluation', 'D) Floating only'], ans: 'B', exp: 'Revaluation: increase in fixed exchange rate (opposite of devaluation). Makes exports less competitive, imports cheaper. Reduces current account deficit.', expCh: '升值：固定汇率增加（贬值的相反）。使出口竞争力下降，进口更便宜。减少经常账户赤字。' },
 
-    { year: 2020, level: 'A-level', q: 'What is ATP hydrolysis?', opts: ['A) ATP formation', 'B) ATP breakdown releasing energy', 'C) DNA replication', 'D) Protein folding'], ans: 'B', exp: 'ATP → ADP + Pi + energy. Hydrolysis of ATP releases ~30.5 kJ/mol of energy used by cells for active transport, muscle contraction, etc.', expCh: 'ATP → ADP + Pi + 能量。ATP水解释放约30.5 kJ/mol的能量，用于主动运输、肌肉收缩等。' },
-    { year: 2021, level: 'A-level', q: 'Explain the light-dependent reactions:', opts: ['A) Occur in stroma', 'B) Occur in thylakoid, produce ATP and NADPH', 'C) Produce glucose only', 'D) Require no light'], ans: 'B', exp: 'Light reactions occur in the thylakoid membrane, absorbing photons to produce ATP and reduced NADP (NADPH) that power the dark reactions.', expCh: '光反应发生在类囊体膜中，吸收光子产生ATP和还原态NADP（NADPH），为暗反应提供动力。' },
-    { year: 2022, level: 'A-level', q: 'What is the Calvin cycle?', opts: ['A) Light reactions', 'B) CO2 fixation and glucose synthesis', 'C) Photolysis of water', 'D) Chlorophyll excitation'], ans: 'B', exp: 'Calvin cycle (dark reactions) use ATP and NADPH from light reactions to fix CO2 into glucose via RuBP and 3-PGA.', expCh: 'Calvin循环（暗反应）使用来自光反应的ATP和NADPH来通过RuBP和3-PGA将CO2固定成葡萄糖。' },
-    { year: 2023, level: 'A-level', q: 'Describe aerobic respiration equation:', opts: ['A) C6H12O6 → C2H5OH + CO2', 'B) C6H12O6 + 6O2 → 6CO2 + 6H2O + energy', 'C) 6CO2 + 6H2O → glucose', 'D) Only anaerobic'], ans: 'B', exp: 'Aerobic respiration: C6H12O6 + 6O2 → 6CO2 + 6H2O + ~2880 kJ. Occurs in mitochondria, produces 32 ATP per glucose.', expCh: '有氧呼吸：C6H12O6 + 6O2 → 6CO2 + 6H2O + ~2880 kJ。发生在线粒体中，每个葡萄糖产生32个ATP。' },
-    { year: 2024, level: 'A-level', q: 'What is the role of NAD in respiration?', opts: ['A) ATP synthesis', 'B) Electron carrier (oxidized/reduced)', 'C) Enzyme catalyst', 'D) Substrate'], ans: 'B', exp: 'NAD+ is reduced to NADH to carry electrons and hydrogen ions from glucose to the electron transport chain where they power ATP synthesis.', expCh: 'NAD+被还原为NADH，携带来自葡萄糖的电子和氢离子到电子传递链，为ATP合成提供动力。' },
-
-    { year: 2020, level: 'IGCSE', q: 'What is homeostasis?', opts: ['A) Photosynthesis', 'B) Maintaining stable internal conditions', 'C) Respiration', 'D) Evolution'], ans: 'B', exp: 'Homeostasis is maintaining stable internal conditions (temperature, pH, water) despite external changes, essential for survival.', expCh: '稳态是尽管外部条件变化，仍维持稳定的内部条件（温度、pH、水），这是生存所必需的。' },
-    { year: 2021, level: 'IGCSE', q: 'What is the role of insulin?', opts: ['A) Digestion', 'B) Regulate blood glucose', 'C) Immune response', 'D) Growth'], ans: 'B', exp: 'Insulin is a hormone produced by pancreatic beta cells that lowers blood glucose by promoting uptake into cells and glycogen synthesis.', expCh: '胰岛素是由胰岛β细胞产生的激素，通过促进细胞摄取和糖原合成来降低血糖。' },
-    { year: 2022, level: 'IGCSE', q: 'What is the function of hemoglobin?', opts: ['A) Enzyme activity', 'B) Oxygen transport', 'C) Fat digestion', 'D) Immunity'], ans: 'B', exp: 'Hemoglobin is a protein in RBCs with 4 heme groups containing iron. Each iron can bind O2, allowing transport from lungs to tissues.', expCh: '血红蛋白是RBCs中含有4个含铁血红素基团的蛋白质。每个铁可以结合O2，允许从肺运输到组织。' },
-    { year: 2023, level: 'IGCSE', q: 'What is vaccination?', opts: ['A) Antibiotic treatment', 'B) Introduction of antigen to build immunity', 'C) Killing bacteria', 'D) Fever reduction'], ans: 'B', exp: 'Vaccination introduces weakened/dead antigens to stimulate immune response, building immunity without causing disease.', expCh: '接种引入减弱/死亡的抗原以刺激免疫反应，不会导致疾病而建立免疫力。' },
-    { year: 2024, level: 'IGCSE', q: 'What are antibodies?', opts: ['A) Bacteria killers', 'B) Proteins that bind antigens', 'C) White blood cells', 'D) Vaccines'], ans: 'B', exp: 'Antibodies (immunoglobulins) are Y-shaped proteins produced by B cells that bind specific antigens for neutralization and removal.', expCh: '抗体（免疫球蛋白）是由B细胞产生的Y形蛋白质，与特定抗原结合用于中和和清除。' },
-
-    { year: 2020, level: 'A-level', q: 'What is natural selection?', opts: ['A) Artificial breeding', 'B) Differential reproductive success of traits', 'C) Random mutation', 'D) Genetic drift'], ans: 'B', exp: 'Natural selection: organisms with advantageous traits reproduce more successfully, passing genes to offspring. Over generations, beneficial alleles increase in frequency.', expCh: '自然选择：具有有利性状的生物体繁殖成功率更高，将基因传递给后代。在多代中，有益等位基因的频率增加。' },
-    { year: 2021, level: 'A-level', q: 'What is the Hardy-Weinberg principle used for?', opts: ['A) Predict evolution', 'B) Baseline to detect evolutionary change', 'C) Calculate mutations', 'D) Determine fitness'], ans: 'B', exp: 'Hardy-Weinberg equilibrium (p² + 2pq + q² = 1) assumes no evolution. Deviations indicate evolutionary forces acting on population allele frequencies.', expCh: 'Hardy-Weinberg平衡（p² + 2pq + q² = 1）假设没有进化。偏差表示进化力作用于种群等位基因频率。' },
-    { year: 2022, level: 'A-level', q: 'What is speciation?', opts: ['A) Adaptation', 'B) Formation of new species', 'C) Extinction', 'D) Mutation'], ans: 'B', exp: 'Speciation is evolution of reproductive isolation between populations through allopatric (geographic) or peripatric isolation, preventing interbreeding.', expCh: '物种形成是通过异所地（地理）或周缘隔离在种群之间进化生殖隔离，防止杂交。' },
-    { year: 2023, level: 'A-level', q: 'What is genetic drift?', opts: ['A) Selection pressure', 'B) Random change in allele frequency', 'C) Adaptation', 'D) Evolution direction'], ans: 'B', exp: 'Genetic drift is random fluctuation in allele frequency, especially strong in small populations. Can fix neutral alleles or lose beneficial ones.', expCh: '遗传漂变是等位基因频率的随机波动，在小种群中特别强。可以固定中立等位基因或失去有益的。' },
-    { year: 2024, level: 'A-level', q: 'What is gene flow?', opts: ['A) Gene expression', 'B) Movement of alleles between populations', 'C) Protein synthesis', 'D) Mutation rate'], ans: 'B', exp: 'Gene flow (migration) is movement of alleles between populations through immigration/emigration, reducing genetic differentiation.', expCh: '基因流（迁移）是等位基因通过移入/移出在种群之间的运动，减少遗传分化。' }
+    { year: 2015, q: 'What is development?', opts: ['A) Economic growth only', 'B) Sustained improvement in living standards', 'C) GDP increase', 'D) Industrialisation'], ans: 'B', exp: 'Development: sustained improvement in living standards (health, education, income, equality). Beyond GDP growth - includes human development index.', expCh: '发展：生活水平的可持续改善（健康、教育、收入、平等）。超越GDP增长——包括人类发展指数。' },
+    { year: 2016, q: 'What is inequality measure?', opts: ['A) GDP per capita', 'B) Gini coefficient', 'C) Income only', 'D) Poverty line'], ans: 'B', exp: 'Gini coefficient: measures income inequality (0 = perfect equality, 1 = perfect inequality). Lorenz curve shows cumulative % population vs % income.', expCh: 'Gini系数：测量收入不平等（0 = 完全平等，1 = 完全不平等）。Lorenz曲线显示累积%人口vs%收入。' },
+    { year: 2017, q: 'What causes poverty trap?', opts: ['A) High wages', 'B) Low income, lack of education, prevents escape', 'C) Full employment', 'D) Good healthcare'], ans: 'B', exp: 'Poverty trap: low income limits education access, skills, employment → perpetuates low income. Intergenerational transmission. Requires intervention.', expCh: '贫困陷阱：低收入限制教育机会、技能、就业→延续低收入。代际传递。需要干预。' },
+    { year: 2018, q: 'What is human capital?', opts: ['A) Physical assets', 'B) Skills, knowledge, health of workforce', 'C) Infrastructure', 'D) Natural resources'], ans: 'B', exp: 'Human capital: stock of skills, knowledge, health, experience of workforce. Investment in education/healthcare increases productivity, wages, growth.', expCh: '人力资本：劳动力的技能、知识、健康、经验库存。教育/医疗投资增加生产率、工资、增长。' },
+    { year: 2019, q: 'What is brain drain?', opts: ['A) Education decrease', 'B) Skilled workers emigrate', 'C) Illiteracy', 'D) Health problems'], ans: 'B', exp: 'Brain drain: skilled workers emigrate to developed countries for better opportunities. Reduces developing country productivity, growth. Remittances partially offset.', expCh: '人才流失：技能工人移居发达国家寻求更好机会。减少发展中国家的生产率、增长。汇款部分抵消。' },
+    { year: 2020, q: 'What causes development barriers?', opts: ['A) Education investment', 'B) Geographic disadvantage, poor governance, resource curse, debt', 'C) Trade', 'D) FDI'], ans: 'B', exp: 'Development barriers: landlocked geography, disease burden, weak institutions, corruption, resource curse (resources cause conflict), debt servicing, trade barriers.', expCh: '发展障碍：内陆地理位置、疾病负担、薄弱机构、腐败、资源诅咒（资源引起冲突）、债务偿还、贸易壁垒。' },
+    { year: 2021, q: 'What is resource curse?', opts: ['A) Lack of resources', 'B) Abundance causes conflict, corruption, poor institutions', 'C) Resource development', 'D) Exports increase'], ans: 'B', exp: 'Resource curse: abundant natural resources (oil, minerals) can paradoxically hinder development. Competition for resources causes conflict, corruption diverts wealth.', expCh: '资源诅咒：丰富的自然资源（石油、矿物）可能会阻碍发展。对资源的竞争引起冲突，腐败转移财富。' },
+    { year: 2022, q: 'What is aid effectiveness?', opts: ['A) All aid helps', 'B) Depends on governance, corruption, use of funds', 'C) Creates dependency', 'D) No effect'], ans: 'B', exp: 'Aid effectiveness: conditional on good governance, anti-corruption. Tied aid, project selection matter. Can create dependency if misused. Grants vs loans differ.', expCh: '援助有效性：取决于良政、反腐。有条件援助、项目选择很重要。如果滥用可能造成依赖。赠款vs贷款不同。' },
+    { year: 2023, q: 'What is microfinance?', opts: ['A) Large banks', 'B) Small loans to poor for self-employment', 'C) Government lending', 'D) Investment banking'], ans: 'B', exp: 'Microfinance: small loans (often < $1000) to poor without collateral for self-employment, small business. Helps escape poverty trap, entrepreneurship.', expCh: '小额融资：向贫困人口提供小额贷款（通常<$1000）用于自雇、小企业。帮助逃离贫困陷阱、创业。' },
+    { year: 2024, q: 'What is debt relief?', opts: ['A) Lending more', 'B) Writing off/reducing debt obligations', 'C) Interest increase', 'D) New loans'], ans: 'B', exp: 'Debt relief: forgiving/reducing obligations allows resources toward education/healthcare instead of debt servicing. HIPC Initiative freed funds for development.', expCh: '债务减免：原谅/减少债务义务使资源流向教育/医疗而不是债务偿还。HIPC倡议为发展释放资金。' },
+    { year: 2025, q: 'What is sustainable development?', opts: ['A) Rapid growth', 'B) Development meeting current needs without harming future', 'C) Environmental only', 'D) Economic only'], ans: 'B', exp: 'Sustainable development: meet current needs without compromising future generations. Balances economic, social, environmental (triple bottom line).', expCh: '可持续发展：在不损害未来世代的情况下满足当前需求。平衡经济、社会、环保（三重底线）。' },
+    { year: 2026, q: 'What is carbon tax?', opts: ['A) Tax on exports', 'B) Tax on carbon emissions to reduce usage', 'C) Income tax', 'D) Trade tax'], ans: 'B', exp: 'Carbon tax: Pigouvian tax on emissions to internalize environmental cost. Incentivizes renewable energy, efficiency. Alternative to cap-and-trade.', expCh: '碳税：对排放的Pigouvian税以内部化环境成本。激励可再生能源、效率。cap-and-trade的替代方案。' }
   ];
 
-  // CHEMISTRY QUESTIONS (40+)
-  const chemistryQuestions = [
-    { year: 2020, level: 'IGCSE', q: 'What is the atomic number?', opts: ['A) Mass of nucleus', 'B) Number of protons', 'C) Number of neutrons', 'D) Atomic mass'], ans: 'B', exp: 'Atomic number = number of protons. It defines element identity and position on periodic table. Example: Carbon has atomic number 6 (6 protons).', expCh: '原子序数 = 质子数。它定义元素身份和周期表上的位置。例如：碳的原子序数为6（6个质子）。' },
-    { year: 2021, level: 'IGCSE', q: 'What is mass number?', opts: ['A) Protons only', 'B) Protons + neutrons', 'C) Electrons + protons', 'D) Atomic mass units'], ans: 'B', exp: 'Mass number (A) = protons + neutrons. Isotopes have same protons but different neutrons, so different mass numbers.', expCh: '质量数（A）= 质子 + 中子。同位素有相同的质子但不同的中子，所以质量数不同。' },
-    { year: 2022, level: 'IGCSE', q: 'What are isotopes?', opts: ['A) Different elements', 'B) Same element, different neutrons', 'C) Same neutrons, different protons', 'D) Different charge'], ans: 'B', exp: 'Isotopes are atoms of the same element (same protons) with different numbers of neutrons. Example: C-12 and C-14 are carbon isotopes.', expCh: '同位素是同一元素（相同质子）但中子数不同的原子。例如：C-12和C-14是碳同位素。' },
-    { year: 2023, level: 'IGCSE', q: 'What is the periodic table organized by?', opts: ['A) Mass number', 'B) Atomic number', 'C) Neutrons', 'D) Electrons'], ans: 'B', exp: 'Periodic table is organized by atomic number (increasing left to right, top to bottom). Elements with similar electron configurations are grouped.', expCh: '周期表按原子序数组织（从左到右，从上到下递增）。具有相似电子构型的元素被分组。' },
-    { year: 2024, level: 'IGCSE', q: 'What is ionic bonding?', opts: ['A) Electron sharing', 'B) Electron transfer creating ions', 'C) Covalent sharing', 'D) Hydrogen bond'], ans: 'B', exp: 'Ionic bonding: metal loses electrons to nonmetal, creating cation and anion attracted by electrostatic force. Example: NaCl (Na+ and Cl-).', expCh: '离子键：金属失去电子给非金属，创建阳离子和阴离子，通过静电力吸引。例如：NaCl（Na+和Cl-）。' },
-
-    { year: 2020, level: 'A-level', q: 'Explain electron configuration of Na (11):', opts: ['A) 2,8,1', 'B) 2,8,2', 'C) 2,7,2', 'D) 1,2,8'], ans: 'A', exp: 'Na (Z=11): 1s² 2s² 2p⁶ 3s¹ or 2,8,1. Last electron in 3s orbital makes it very reactive, easily loses this electron to form Na+ ion.', expCh: 'Na（Z=11）：1s² 2s² 2p⁶ 3s¹或2,8,1。最后一个电子在3s轨道上使其非常活泼，容易失去这个电子形成Na+离子。' },
-    { year: 2021, level: 'A-level', q: 'What are orbitals?', opts: ['A) Electron paths', 'B) Regions of probability', 'C) Bohr shells', 'D) Neutron positions'], ans: 'B', exp: 'Orbitals are regions of space where electrons are 90% likely to be found. s, p, d, f orbitals have different shapes and sizes.', expCh: '轨道是电子有90%可能性被发现的空间区域。s、p、d、f轨道具有不同的形状和大小。' },
-    { year: 2022, level: 'A-level', q: 'What is electronegativity?', opts: ['A) Nuclear charge', 'B) Ability to attract electrons', 'C) Bonding energy', 'D) Oxidation state'], ans: 'B', exp: 'Electronegativity is ability to attract shared electrons in covalent bond. Increases across period, decreases down group. Fluorine (4.0) most electronegative.', expCh: '电负性是在共价键中吸引共享电子的能力。跨周期增加，向下组减少。氟（4.0）最具电负性。' },
-    { year: 2023, level: 'A-level', q: 'What is ionization energy?', opts: ['A) Bond breaking energy', 'B) Energy to remove electron from atom', 'C) Energy to add electron', 'D) Orbital energy'], ans: 'B', exp: 'Ionization energy is energy required to remove 1 electron from neutral atom. First ionization energy (IE1) removes most loosely bound electron.', expCh: '电离能是从中性原子中移除1个电子所需的能量。第一电离能（IE1）移除最疏松的电子。' },
-    { year: 2024, level: 'A-level', q: 'Explain covalent bonding:', opts: ['A) Electron transfer', 'B) Electron sharing', 'C) Electrostatic force', 'D) Metallic bonding'], ans: 'B', exp: 'Covalent bonding: nonmetals share electron pairs to achieve noble gas configuration. Single (1 pair), double (2 pairs), triple (3 pairs) bonds exist.', expCh: '共价键：非金属共享电子对以实现稀有气体构型。存在单键（1对）、双键（2对）、三键（3对）。' },
-
-    { year: 2020, level: 'IGCSE', q: 'What is valency?', opts: ['A) Atomic number', 'B) Combining power of element', 'C) Bond energy', 'D) Oxidation number'], ans: 'B', exp: 'Valency is number of electrons lost, gained, or shared by atom. Oxygen valency = 2 (gains 2 electrons). Carbon valency = 4.', expCh: '化合价是原子失去、获得或共享的电子数。氧的化合价 = 2（获得2个电子）。碳的化合价 = 4。' },
-    { year: 2021, level: 'IGCSE', q: 'What is relative atomic mass?', opts: ['A) Actual mass of atom', 'B) Average mass compared to C-12', 'C) Sum of protons', 'D) Electron mass'], ans: 'B', exp: 'Relative atomic mass (Ar) is weighted average mass of atom compared to C-12 = 12 exactly. Uses isotope abundance percentages.', expCh: '相对原子质量（Ar）是原子与C-12相比的加权平均质量 = 12。使用同位素丰度百分比。' },
-    { year: 2022, level: 'IGCSE', q: 'What is molar mass?', opts: ['A) Atomic mass', 'B) Mass of 1 mole in grams', 'C) Molecular weight only', 'D) Density'], ans: 'B', exp: 'Molar mass (M) in g/mol equals relative formula mass numerically. Example: NaCl has Ar(Na)=23, Ar(Cl)=35.5, so M(NaCl)=58.5 g/mol.', expCh: '摩尔质量（M）以g/mol为单位在数值上等于相对分子质量。例如：NaCl的Ar（Na）=23，Ar（Cl）=35.5，所以M（NaCl）=58.5 g/mol。' },
-    { year: 2023, level: 'IGCSE', q: 'What is molarity (mol/dm³)?', opts: ['A) Mass per volume', 'B) Moles of solute per dm³', 'C) Density measurement', 'D) Concentration unit only'], ans: 'B', exp: 'Molarity = moles of solute ÷ volume in dm³ (1 dm³ = 1 L). Formula: n = M × V, used to calculate concentration of solutions.', expCh: '摩尔浓度 = 溶质的摩尔数 ÷ dm³体积。公式：n = M × V，用于计算溶液浓度。' },
-    { year: 2024, level: 'IGCSE', q: 'What is a solution?', opts: ['A) Solute only', 'B) Solvent only', 'C) Homogeneous mixture of solute + solvent', 'D) Precipitate'], ans: 'C', exp: 'Solution = homogeneous mixture where solute dissolves in solvent at molecular level. Transparent, uniform composition, fixed boiling point.', expCh: '溶液 = 齐相混合物，溶质在分子水平上溶解在溶剂中。透明，成分均匀，固定沸点。' },
-
-    { year: 2020, level: 'IGCSE', q: 'Is combustion exothermic or endothermic?', opts: ['A) Endothermic', 'B) Exothermic', 'C) Neutral', 'D) Depends on fuel'], ans: 'B', exp: 'Combustion is exothermic (releases heat/energy). All burning reactions release energy because product bonds are stronger than reactant bonds.', expCh: '燃烧是放热的（释放热/能量）。所有燃烧反应都释放能量，因为产物键比反应物键更强。' },
-    { year: 2021, level: 'IGCSE', q: 'What is activation energy?', opts: ['A) Energy released', 'B) Minimum energy for reaction', 'C) Kinetic energy', 'D) Bond energy'], ans: 'B', exp: 'Activation energy (Ea) is minimum energy needed for reaction to occur. Enzymes and catalysts lower Ea, speeding up reactions without changing ΔH.', expCh: '活化能（Ea）是反应发生所需的最少能量。酶和催化剂降低Ea，加快反应而不改变ΔH。' },
-    { year: 2022, level: 'IGCSE', q: 'What is an exothermic reaction?', opts: ['A) Requires energy input', 'B) Releases heat/energy', 'C) Absorbs heat', 'D) No energy change'], ans: 'B', exp: 'Exothermic: ΔH negative, releases heat. Temperature of surroundings increases. Example: combustion, neutralization, freezing.', expCh: '放热：ΔH为负，释放热。周围温度升高。例如：燃烧、中和、冻结。' },
-    { year: 2023, level: 'IGCSE', q: 'What is an endothermic reaction?', opts: ['A) Releases heat', 'B) Absorbs heat from surroundings', 'C) Combustion', 'D) Freezing'], ans: 'B', exp: 'Endothermic: ΔH positive, absorbs heat. Temperature of surroundings decreases. Example: melting, evaporation, photosynthesis, dissolution of some salts.', expCh: '吸热：ΔH为正，吸收热。周围温度下降。例如：熔化、蒸发、光合作用、某些盐的溶解。' },
-    { year: 2024, level: 'IGCSE', q: 'What does a catalyst do?', opts: ['A) Participates in reaction', 'B) Lowers activation energy', 'C) Gets consumed', 'D) Changes ΔH'], ans: 'B', exp: 'Catalyst speeds up reaction by lowering Ea. Not consumed in reaction. Final amount unchanged. Provides alternative reaction pathway with lower energy.', expCh: '催化剂通过降低Ea加快反应。不在反应中消耗。最终量不变。提供能量更低的替代反应途径。' },
-
-    { year: 2020, level: 'A-level', q: 'What is enthalpy (ΔH)?', opts: ['A) Heat at constant volume', 'B) Total heat energy at constant pressure', 'C) Entropy change', 'D) Gibbs free energy'], ans: 'B', exp: 'Enthalpy (ΔH) is heat energy change at constant pressure. ΔH = products - reactants. Negative (exo) releases heat, positive (endo) absorbs.', expCh: '焓（ΔH）是恒定压力下的热能变化。ΔH = 产物 - 反应物。负值（放热）释放热，正值（吸热）吸收。' },
-    { year: 2021, level: 'A-level', q: 'What is Hess\'s law?', opts: ['A) Energy conservation', 'B) Enthalpy change independent of pathway', 'C) Reaction rate', 'D) Entropy law'], ans: 'B', exp: 'Hess\'s law: ΔH depends only on initial/final states, not reaction pathway. Allows calculation of ΔH from other reactions using algebraic manipulation.', expCh: 'Hess定律：ΔH仅取决于初始/最终状态，不取决于反应途径。允许使用代数运算从其他反应计算ΔH。' },
-    { year: 2022, level: 'A-level', q: 'What is bond enthalpy?', opts: ['A) Activation energy', 'B) Energy to break/form bonds', 'C) Lattice energy', 'D) Ionization energy'], ans: 'B', exp: 'Bond enthalpy is energy required to break bond (endothermic) or released when forming bond (exothermic). ΔH = bonds broken - bonds formed.', expCh: '键焓是断裂键所需的能量（吸热）或形成键时释放的能量（放热）。ΔH = 断裂的键 - 形成的键。' },
-    { year: 2023, level: 'A-level', q: 'What is entropy (ΔS)?', opts: ['A) Disorder measure', 'B) Heat energy', 'C) Stability', 'D) Reaction speed'], ans: 'A', exp: 'Entropy (S) measures disorder/randomness. ΔS increases with gas formation, increased particles, increased temperature. ΔS > 0 (more disorder) is favorable.', expCh: '熵（S）测量无序/随机性。ΔS随气体形成、粒子增加、温度升高而增加。ΔS > 0（更多无序）是有利的。' },
-    { year: 2024, level: 'A-level', q: 'What is Gibbs free energy (ΔG)?', opts: ['A) ΔH + TΔS', 'B) ΔH - TΔS', 'C) ΔH × TΔS', 'D) ΔH ÷ ΔS'], ans: 'B', exp: 'ΔG = ΔH - TΔS. If ΔG < 0, reaction is spontaneous. If ΔG > 0, non-spontaneous. If ΔG = 0, equilibrium at any T.', expCh: 'ΔG = ΔH - TΔS。如果ΔG < 0，反应是自发的。如果ΔG > 0，非自发。如果ΔG = 0，任何T的平衡。' },
-
-    { year: 2020, level: 'IGCSE', q: 'What is pH?', opts: ['A) Concentration of H+', 'B) -log[H+]', 'C) Hydrogen molecules', 'D) Acidity only'], ans: 'B', exp: 'pH = -log[H+]. pH < 7 acidic, pH = 7 neutral, pH > 7 alkaline. pH + pOH = 14 at 25°C.', expCh: 'pH = -log[H+]。pH < 7酸性，pH = 7中性，pH > 7碱性。在25°C时pH + pOH = 14。' },
-    { year: 2021, level: 'IGCSE', q: 'What is neutralization?', opts: ['A) Removing acid', 'B) Acid + base → salt + water', 'C) Dilution', 'D) pH change only'], ans: 'B', exp: 'Neutralization: acid + base → salt + water. H+ + OH- → H2O. Exothermic reaction. Example: HCl + NaOH → NaCl + H2O.', expCh: '中和：酸 + 碱 → 盐 + 水。H+ + OH- → H2O。放热反应。例如：HCl + NaOH → NaCl + H2O。' },
-    { year: 2022, level: 'IGCSE', q: 'What is the pH of neutral solution at 25°C?', opts: ['A) 0', 'B) 7', 'C) 10', 'D) 14'], ans: 'B', exp: 'At 25°C, neutral solution has pH = 7 where [H+] = [OH-] = 10-7 mol/dm³. Below 7 is acidic, above 7 is alkaline.', expCh: '在25°C时，中性溶液的pH = 7，其中[H+] = [OH-] = 10-7 mol/dm³。7以下是酸性，7以上是碱性。' },
-    { year: 2023, level: 'IGCSE', q: 'What is a strong acid?', opts: ['A) Concentrated acid', 'B) Completely ionized', 'C) High pH', 'D) Dilute acid'], ans: 'B', exp: 'Strong acid completely ionizes (dissociates) in water: HCl, HBr, HI, HNO3, H2SO4, HClO4. Weak acids only partially ionize.', expCh: '强酸在水中完全电离（解离）：HCl、HBr、HI、HNO3、H2SO4、HClO4。弱酸只是部分电离。' },
-    { year: 2024, level: 'IGCSE', q: 'What is a buffer?', opts: ['A) Strong acid/base', 'B) Weak acid + salt system resisting pH change', 'C) Concentrated solution', 'D) pH indicator'], ans: 'B', exp: 'Buffer = weak acid + conjugate base salt (or weak base + conjugate acid salt). Resists pH changes when small amounts of acid/base added.', expCh: '缓冲液 = 弱酸 + 共轭碱盐（或弱碱 + 共轭酸盐）。当添加少量酸/碱时抵抗pH变化。' },
-
-    { year: 2020, level: 'A-level', q: 'What is Ka (acid dissociation constant)?', opts: ['A) pH measure', 'B) Equilibrium constant for acid ionization', 'C) Concentration of acid', 'D) Buffer capacity'], ans: 'B', exp: 'Ka = [H+][A-]/[HA]. Larger Ka = stronger acid (more dissociation). pKa = -log(Ka). pKa + pKb = pKw = 14.', expCh: 'Ka = [H+][A-]/[HA]。更大的Ka = 更强的酸（更多解离）。pKa = -log(Ka)。pKa + pKb = pKw = 14。' },
-    { year: 2021, level: 'A-level', q: 'What is Kb (base dissociation constant)?', opts: ['A) Acid constant', 'B) Equilibrium constant for base ionization', 'C) pH scale', 'D) Concentration'], ans: 'B', exp: 'Kb = [BH+][OH-]/[B]. Larger Kb = stronger base. For conjugate pairs: Ka × Kb = Kw = 10-14 at 25°C.', expCh: 'Kb = [BH+][OH-]/[B]。更大的Kb = 更强的碱。对于共轭对：Ka × Kb = Kw = 10-14在25°C。' },
-    { year: 2022, level: 'A-level', q: 'What is redox reaction?', opts: ['A) Acid-base', 'B) Oxidation + reduction', 'C) Combustion only', 'D) Thermal'], ans: 'B', exp: 'Redox: simultaneous oxidation (lose e-) and reduction (gain e-). Oxidation number changes. Example: Mg + O2 → MgO (Mg: 0→+2, O: 0→-2).', expCh: '氧化还原：同时发生氧化（失去e-）和还原（获得e-）。氧化数变化。例如：Mg + O2 → MgO（Mg：0→+2，O：0→-2）。' },
-    { year: 2023, level: 'A-level', q: 'What is oxidation number?', opts: ['A) Electron count', 'B) Number assigned to element in compound', 'C) Charge only', 'D) Valency'], ans: 'B', exp: 'Oxidation number: assigned based on electron distribution. Rules: element = 0, monoatomic ion = charge, O usually -2, H usually +1.', expCh: '氧化数：根据电子分布分配。规则：元素 = 0，单原子离子 = 电荷，O通常 -2，H通常 +1。' },
-    { year: 2024, level: 'A-level', q: 'What is half equation?', opts: ['A) Partial reaction', 'B) Oxidation or reduction separately', 'C) Complete reaction', 'D) Balanced equation'], ans: 'B', exp: 'Half equation shows oxidation (loss of e-) or reduction (gain of e-) separately. Useful to balance complex redox equations.', expCh: '半反应方程式分别显示氧化（失去e-）或还原（获得e-）。用于平衡复杂的氧化还原方程式。' }
-  ];
-
-  const allQuestions = selectedSubject === 'biology' ? biologyQuestions : chemistryQuestions;
+  const shuffleArray = (array) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
 
   useEffect(() => {
     if (currentScreen === 'quiz' && timeRemaining > 0) {
@@ -126,28 +122,17 @@ const BioChemQuiz = () => {
     setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 3000);
   };
 
-  const shuffleArray = (array) => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  const startQuiz = (subject) => {
-    const shuffledQuestions = shuffleArray(allQuestions);
+  const startQuiz = () => {
+    const shuffledQuestions = shuffleArray(economicsQuestions);
     setQuestions(shuffledQuestions);
-    setSelectedSubject(subject);
     setCurrentQuestionIndex(0);
     setSelectedAnswer(null);
     setScore(0);
     setShowExplanation(false);
     setQuizComplete(false);
-    setTimeRemaining(3600);
-    setAnsweredQuestions({});
+    setTimeRemaining(60);
     setCurrentScreen('quiz');
-    addNotification(`Started ${subject === 'biology' ? 'Biology' : 'Chemistry'} Quiz!`, '#4CAF50');
+    addNotification('Quiz Started! 1 minute per question', '#4CAF50');
   };
 
   const handleAnswerSelect = (option) => {
@@ -162,9 +147,6 @@ const BioChemQuiz = () => {
     }
 
     const currentQuestion = questions[currentQuestionIndex];
-    const newAnsweredQuestions = { ...answeredQuestions, [currentQuestionIndex]: selectedAnswer };
-    setAnsweredQuestions(newAnsweredQuestions);
-
     if (selectedAnswer === currentQuestion.ans) {
       setScore(score + 1);
       addNotification('✓ Correct!', '#4CAF50');
@@ -179,22 +161,19 @@ const BioChemQuiz = () => {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null);
       setShowExplanation(false);
+      setTimeRemaining(60);
     } else {
       setQuizComplete(true);
     }
   };
 
-  const formatTime = (seconds) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const handleBackToMenu = () => {
     setCurrentScreen('menu');
-    setSelectedSubject(null);
     setSelectedAnswer(null);
+  };
+
+  const formatTime = (seconds) => {
+    return `${seconds.toString().padStart(2, '0')}s`;
   };
 
   // MENU SCREEN
@@ -210,81 +189,90 @@ const BioChemQuiz = () => {
           <div style={{
             background: 'white',
             borderRadius: '15px',
-            padding: '40px 20px',
+            padding: '50px 20px',
             marginBottom: '30px',
             textAlign: 'center',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}>
-            <h1 style={{ fontSize: '48px', color: '#333', margin: '0 0 10px' }}>
-              🧬🧪 Biology & Chemistry MCQ
+            <h1 style={{ fontSize: '52px', color: '#333', margin: '0 0 15px' }}>
+              📊 A-Level Economics MCQ
             </h1>
-            <p style={{ fontSize: '16px', color: '#666', margin: 0 }}>
-              IGCSE/A-Level Exam Questions (2020-2025) • 60 Questions • 1 Hour Timer
+            <p style={{ fontSize: '18px', color: '#666', margin: 0 }}>
+              100 Unique Questions • 2015-2026 • 1 Minute Per Question (100 Minutes Total)
             </p>
-          </div>
-
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '20px',
-            marginBottom: '30px'
-          }}>
-            <div
-              onClick={() => startQuiz('biology')}
-              style={{
-                background: 'white',
-                borderRadius: '15px',
-                padding: '40px 20px',
-                textAlign: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                border: '4px solid #4CAF50',
-                transition: 'transform 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <div style={{ fontSize: '60px', marginBottom: '15px' }}>🔬</div>
-              <h3 style={{ margin: '0 0 10px', color: '#333', fontSize: '28px' }}>Biology</h3>
-              <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>40 Questions • 2020-2025</p>
-            </div>
-
-            <div
-              onClick={() => startQuiz('chemistry')}
-              style={{
-                background: 'white',
-                borderRadius: '15px',
-                padding: '40px 20px',
-                textAlign: 'center',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                border: '4px solid #2196F3',
-                transition: 'transform 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <div style={{ fontSize: '60px', marginBottom: '15px' }}>🧪</div>
-              <h3 style={{ margin: '0 0 10px', color: '#333', fontSize: '28px' }}>Chemistry</h3>
-              <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>40 Questions • 2020-2025</p>
-            </div>
           </div>
 
           <div style={{
             background: 'white',
             borderRadius: '15px',
-            padding: '25px',
+            padding: '40px 30px',
             textAlign: 'center',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            marginBottom: '30px'
           }}>
-            <h3 style={{ margin: '0 0 15px', color: '#333' }}>📋 Features:</h3>
-            <ul style={{ margin: 0, padding: '0 20px', textAlign: 'left', display: 'inline-block' }}>
-              <li style={{ marginBottom: '8px', color: '#666' }}>✓ 40 questions per subject (randomly shuffled each time)</li>
-              <li style={{ marginBottom: '8px', color: '#666' }}>✓ Real exam questions from 2020-2025</li>
-              <li style={{ marginBottom: '8px', color: '#666' }}>✓ 1-hour timer (exam style)</li>
-              <li style={{ marginBottom: '8px', color: '#666' }}>✓ Year and level shown for each question</li>
-              <li style={{ color: '#666' }}>✓ Bilingual explanations (English & Chinese)</li>
-            </ul>
+            <button
+              onClick={startQuiz}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '20px 60px',
+                fontSize: '24px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginBottom: '20px'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              START QUIZ 🚀
+            </button>
+
+            <div style={{ fontSize: '80px', margin: '30px 0' }}>💼</div>
+            <p style={{ color: '#666', fontSize: '16px', margin: '20px 0' }}>
+              Test your A-Level Economics knowledge with 100 exam-style questions covering all topics from microeconomics to development economics.
+            </p>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: '20px'
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <h3 style={{ margin: '0 0 15px', color: '#333', fontSize: '18px' }}>📚 Topics Covered</h3>
+              <ul style={{ margin: 0, padding: '0 20px', color: '#666', fontSize: '14px' }}>
+                <li style={{ marginBottom: '8px' }}>Supply & Demand</li>
+                <li style={{ marginBottom: '8px' }}>Elasticity</li>
+                <li style={{ marginBottom: '8px' }}>Market Structures</li>
+                <li style={{ marginBottom: '8px' }}>Macroeconomics</li>
+                <li style={{ marginBottom: '8px' }}>Monetary/Fiscal Policy</li>
+                <li>International Trade</li>
+              </ul>
+            </div>
+
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              padding: '20px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              <h3 style={{ margin: '0 0 15px', color: '#333', fontSize: '18px' }}>⏱️ Features</h3>
+              <ul style={{ margin: 0, padding: '0 20px', color: '#666', fontSize: '14px' }}>
+                <li style={{ marginBottom: '8px' }}>100 unique questions</li>
+                <li style={{ marginBottom: '8px' }}>1 minute per question</li>
+                <li style={{ marginBottom: '8px' }}>Randomized each time</li>
+                <li style={{ marginBottom: '8px' }}>Year shown (2015-2026)</li>
+                <li style={{ marginBottom: '8px' }}>Instant feedback</li>
+                <li>Bilingual explanations</li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -312,7 +300,7 @@ const BioChemQuiz = () => {
   if (currentScreen === 'quiz' && !quizComplete) {
     const currentQuestion = questions[currentQuestionIndex];
     const progress = Math.round(((currentQuestionIndex + 1) / questions.length) * 100);
-    const timeWarning = timeRemaining < 300;
+    const timeWarning = timeRemaining < 15;
 
     return (
       <div style={{
@@ -338,7 +326,7 @@ const BioChemQuiz = () => {
               <div>
                 <p style={{ margin: '0 0 5px', color: '#666', fontSize: '12px' }}>Progress</p>
                 <p style={{ margin: 0, color: '#333', fontSize: '16px', fontWeight: 'bold' }}>
-                  {currentQuestionIndex + 1}/{questions.length}
+                  {currentQuestionIndex + 1}/100
                 </p>
               </div>
               <div style={{ textAlign: 'center' }}>
@@ -348,7 +336,7 @@ const BioChemQuiz = () => {
                 </p>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ margin: '0 0 5px', color: '#666', fontSize: '12px' }}>Time Remaining</p>
+                <p style={{ margin: '0 0 5px', color: '#666', fontSize: '12px' }}>Time Per Question</p>
                 <p style={{ margin: 0, color: timeWarning ? '#f44336' : '#333', fontSize: '16px', fontWeight: 'bold' }}>
                   {formatTime(timeRemaining)}
                 </p>
@@ -383,19 +371,19 @@ const BioChemQuiz = () => {
               alignItems: 'start',
               marginBottom: '20px'
             }}>
-              <h3 style={{ margin: 0, color: '#333', flex: 1 }}>
+              <h3 style={{ margin: 0, color: '#333', flex: 1, fontSize: '18px' }}>
                 {currentQuestion.q}
               </h3>
               <span style={{
                 background: '#f0f0f0',
-                padding: '8px 16px',
+                padding: '6px 12px',
                 borderRadius: '20px',
                 fontSize: '12px',
                 color: '#666',
                 whiteSpace: 'nowrap',
                 marginLeft: '15px'
               }}>
-                {currentQuestion.year} {currentQuestion.level}
+                {currentQuestion.year}
               </span>
             </div>
 
@@ -527,7 +515,7 @@ const BioChemQuiz = () => {
                     cursor: 'pointer'
                   }}
                 >
-                  {currentQuestionIndex === questions.length - 1 ? 'See Results →' : 'Next Question →'}
+                  {currentQuestionIndex === questions.length - 1 ? 'See Results →' : 'Next →'}
                 </button>
               </>
             )}
@@ -561,19 +549,19 @@ const BioChemQuiz = () => {
     let resultColor = '';
 
     if (percentage === 100) {
-      resultMessage = 'Perfect Score! Outstanding! 🌟🌟🌟';
+      resultMessage = 'PERFECT SCORE! Outstanding Economics Knowledge! 🌟🌟🌟';
       resultColor = '#4CAF50';
-    } else if (percentage >= 80) {
-      resultMessage = 'Excellent Performance! Great Job! 🎉';
+    } else if (percentage >= 85) {
+      resultMessage = 'Excellent! A-Level Ready! 🎓';
       resultColor = '#8BC34A';
-    } else if (percentage >= 60) {
-      resultMessage = 'Good Work! Keep Practicing! 📚';
+    } else if (percentage >= 70) {
+      resultMessage = 'Good Performance! Keep Studying! 📚';
       resultColor = '#2196F3';
-    } else if (percentage >= 40) {
-      resultMessage = 'You Can Do Better! Study More! 💪';
+    } else if (percentage >= 50) {
+      resultMessage = 'Fair Score! More Review Needed 💪';
       resultColor = '#FF9800';
     } else {
-      resultMessage = 'Need More Practice! Try Again! 📖';
+      resultMessage = 'Keep Practicing! You\'ll Improve! 📖';
       resultColor = '#f44336';
     }
 
@@ -593,7 +581,7 @@ const BioChemQuiz = () => {
           padding: '50px 30px',
           textAlign: 'center',
           boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-          maxWidth: '600px'
+          maxWidth: '700px'
         }}>
           <h1 style={{ fontSize: '48px', margin: '0 0 20px', color: '#333' }}>
             Quiz Complete! ✨
@@ -610,7 +598,7 @@ const BioChemQuiz = () => {
               {percentage}%
             </div>
             <div style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '15px' }}>
-              {score} out of {questions.length}
+              {score} out of 100
             </div>
             <div style={{ fontSize: '18px' }}>
               {resultMessage}
@@ -626,16 +614,19 @@ const BioChemQuiz = () => {
           }}>
             <p style={{ margin: '0 0 10px', color: '#333', fontWeight: 'bold' }}>Summary:</p>
             <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-              • Total Questions: {questions.length}
+              • Total Questions: 100
             </p>
             <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
               • Correct Answers: {score}
             </p>
             <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-              • Wrong Answers: {questions.length - score}
+              • Wrong Answers: {100 - score}
             </p>
             <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
               • Accuracy Rate: {percentage}%
+            </p>
+            <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
+              • Total Time: ~100 minutes (1 min/question)
             </p>
           </div>
 
@@ -661,7 +652,7 @@ const BioChemQuiz = () => {
             </button>
 
             <button
-              onClick={() => startQuiz(selectedSubject)}
+              onClick={startQuiz}
               style={{
                 background: '#764ba2',
                 color: 'white',
@@ -682,4 +673,4 @@ const BioChemQuiz = () => {
   }
 };
 
-export default BioChemQuiz;
+export default EconomicsQuiz;
