@@ -1,35 +1,63 @@
-import React, { useState, useEffect, useRef } from 'react';
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
-const EscapeTheBoss3DUltra = () => {
-  const containerRef = useRef(null);
-  const sceneRef = useRef(null);
-  const cameraRef = useRef(null);
-  const rendererRef = useRef(null);
-  const playerRef = useRef(null);
-  const bossRef = useRef(null);
-  const initRef = useRef(false);
+const EscapeTheBossStory = () => {
+  const audioContextRef = useRef(null);
   
-  const [gameState, setGameState] = useState('menu');
+  // Story & UI States
+  const [gameState, setGameState] = useState('intro');
+  const [storyPhase, setStoryPhase] = useState(0);
   const [bossName, setBossName] = useState('Mr. Boss');
   const [tempBossName, setTempBossName] = useState('');
   const [soundOn, setSoundOn] = useState(true);
-  const [score, setScore] = useState(0);
-  const [bossHealth, setBossHealth] = useState(5);
-  const [inventory, setInventory] = useState({ shield: 0, speed: 0, bomb: 0 });
-  const [notifications, setNotifications] = useState([]);
   const [difficulty, setDifficulty] = useState('normal');
   
-  const audioContextRef = useRef(null);
-  const gameDataRef = useRef({
-    playerPos: { x: 0, z: 0 },
-    bossPos: { x: 10, z: 10 },
-    bombs: [],
-    explosions: [],
-    coins: [],
-    powerUps: [],
-    particles: []
-  });
+  // Game States
+  const [score, setScore] = useState(0);
+  const [bossHealth, setBossHealth] = useState(5);
+  const [playerInventory, setPlayerInventory] = useState({ shield: 0, speed: 0, bomb: 0 });
+  const [notifications, setNotifications] = useState([]);
+  const [currentDialogue, setCurrentDialogue] = useState('');
+  const [level, setLevel] = useState(1);
+
+  const GRID_SIZE = 13;
+  const CELL_SIZE = 40;
+
+  // Story Dialogue
+  const storyDialogues = [
+    {
+      title: "Day at the Office",
+      dialogues: [
+        "You arrive at work on a normal Monday morning...",
+        "Everything seems fine at first...",
+        "But then you hear a SCREAM from the boss's office!",
+        "Mr. Boss bursts out, completely enraged!",
+        "He's had enough! Time to escape!",
+        "Run! Avoid! Survive! Get out of here!"
+      ]
+    },
+    {
+      title: "The Chase Begins",
+      dialogues: [
+        "You run through the office corridors...",
+        "The boss is right behind you!",
+        "Wait! You find some office supplies...",
+        "💣 BOMBS! Perfect for defense!",
+        "Use them strategically to trap the boss!",
+        "Good luck, escape artist!"
+      ]
+    },
+    {
+      title: "Victory!",
+      dialogues: [
+        "You made it! You escaped!",
+        "The boss is defeated!",
+        "You are a TRUE office warrior!",
+        "Congratulations on your escape!",
+        "Time to celebrate your freedom!",
+        "Will you survive another day?"
+      ]
+    }
+  ];
 
   const playSound = (freq, dur) => {
     if (!soundOn) return;
@@ -57,583 +85,208 @@ const EscapeTheBoss3DUltra = () => {
     setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 2000);
   };
 
-  const createPlayerModel = () => {
-    const group = new THREE.Group();
-    
-    const bodyGeometry = new THREE.CapsuleGeometry(0.25, 0.8, 8, 16);
-    const bodyMaterial = new THREE.MeshStandardMaterial({
-      color: 0x4CAF50,
-      metalness: 0.4,
-      roughness: 0.6
-    });
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.castShadow = true;
-    body.receiveShadow = true;
-    body.position.y = 0.5;
-    group.add(body);
-
-    const headGeometry = new THREE.SphereGeometry(0.2, 32, 32);
-    const headMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffcc99,
-      metalness: 0.2,
-      roughness: 0.8
-    });
-    const head = new THREE.Mesh(headGeometry, headMaterial);
-    head.castShadow = true;
-    head.receiveShadow = true;
-    head.position.y = 1.2;
-    group.add(head);
-
-    const eyeGeometry = new THREE.SphereGeometry(0.08, 16, 16);
-    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
-    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    leftEye.position.set(-0.08, 1.35, 0.18);
-    group.add(leftEye);
-    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    rightEye.position.set(0.08, 1.35, 0.18);
-    group.add(rightEye);
-
-    const armGeometry = new THREE.CapsuleGeometry(0.08, 0.6, 8, 8);
-    const armMaterial = new THREE.MeshStandardMaterial({
-      color: 0xffcc99,
-      metalness: 0.2,
-      roughness: 0.8
-    });
-    const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-    leftArm.castShadow = true;
-    leftArm.position.set(-0.3, 0.8, 0);
-    leftArm.rotation.z = 0.3;
-    group.add(leftArm);
-    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-    rightArm.castShadow = true;
-    rightArm.position.set(0.3, 0.8, 0);
-    rightArm.rotation.z = -0.3;
-    group.add(rightArm);
-
-    return group;
+  const startStory = () => {
+    setStoryPhase(0);
+    setGameState('story');
   };
 
-  const createBossModel = () => {
-    const group = new THREE.Group();
-
-    const bodyGeometry = new THREE.BoxGeometry(0.8, 1.8, 0.8);
-    const bodyMaterial = new THREE.MeshStandardMaterial({
-      color: 0xff3333,
-      metalness: 0.6,
-      roughness: 0.4
-    });
-    const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.castShadow = true;
-    body.receiveShadow = true;
-    body.position.y = 0.9;
-    group.add(body);
-
-    const headGeometry = new THREE.BoxGeometry(0.6, 0.7, 0.6);
-    const headMaterial = new THREE.MeshStandardMaterial({
-      color: 0xff5555,
-      metalness: 0.5,
-      roughness: 0.5
-    });
-    const head = new THREE.Mesh(headGeometry, headMaterial);
-    head.castShadow = true;
-    head.receiveShadow = true;
-    head.position.y = 1.7;
-    group.add(head);
-
-    const eyeGeometry = new THREE.SphereGeometry(0.12, 16, 16);
-    const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    leftEye.position.set(-0.15, 1.8, 0.25);
-    group.add(leftEye);
-    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    rightEye.position.set(0.15, 1.8, 0.25);
-    group.add(rightEye);
-
-    const armGeometry = new THREE.BoxGeometry(0.2, 1, 0.2);
-    const armMaterial = new THREE.MeshStandardMaterial({
-      color: 0xcc0000,
-      metalness: 0.7,
-      roughness: 0.3
-    });
-    const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-    leftArm.castShadow = true;
-    leftArm.position.set(-0.6, 1.2, 0);
-    group.add(leftArm);
-    const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-    rightArm.castShadow = true;
-    rightArm.position.set(0.6, 1.2, 0);
-    group.add(rightArm);
-
-    const hornGeometry = new THREE.ConeGeometry(0.1, 0.5, 16);
-    const hornMaterial = new THREE.MeshStandardMaterial({
-      color: 0x333333,
-      metalness: 0.8,
-      roughness: 0.2
-    });
-    const leftHorn = new THREE.Mesh(hornGeometry, hornMaterial);
-    leftHorn.castShadow = true;
-    leftHorn.position.set(-0.25, 2.15, 0);
-    leftHorn.rotation.z = 0.3;
-    group.add(leftHorn);
-    const rightHorn = new THREE.Mesh(hornGeometry, hornMaterial);
-    rightHorn.castShadow = true;
-    rightHorn.position.set(0.25, 2.15, 0);
-    rightHorn.rotation.z = -0.3;
-    group.add(rightHorn);
-
-    return group;
-  };
-
-  const createExplosionParticles = (x, z, scene) => {
-    const particleCount = 30;
-    for (let i = 0; i < particleCount; i++) {
-      const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-      const particleMaterial = new THREE.MeshStandardMaterial({
-        color: new THREE.Color().setHSL(0.08 + Math.random() * 0.1, 1, 0.5),
-        metalness: 0.5,
-        roughness: 0.5
-      });
-      const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-      particle.position.set(x, 1 + Math.random() * 0.5, z);
-      particle.castShadow = true;
-      
-      const velocity = new THREE.Vector3(
-        (Math.random() - 0.5) * 0.3,
-        Math.random() * 0.3 + 0.2,
-        (Math.random() - 0.5) * 0.3
-      );
-      
-      scene.add(particle);
-      gameDataRef.current.particles.push({
-        mesh: particle,
-        velocity,
-        life: 1
-      });
+  const nextStoryPhase = () => {
+    if (storyPhase < storyDialogues[0].dialogues.length - 1) {
+      setStoryPhase(storyPhase + 1);
+      playSound(600, 0.1);
+    } else {
+      startGameplay();
     }
   };
 
-  const init3D = () => {
-    if (initRef.current || !containerRef.current) return;
-    initRef.current = true;
+  const startGameplay = () => {
+    if (tempBossName.trim()) setBossName(tempBossName);
+    setScore(0);
+    setBossHealth(difficulty === 'hard' ? 7 : difficulty === 'easy' ? 3 : 5);
+    setPlayerInventory({ shield: 0, speed: 0, bomb: 3 });
+    setLevel(1);
+    setGameState('playing');
+    playSound(800, 0.2);
+  };
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0e27);
-    scene.fog = new THREE.Fog(0x0a0e27, 100, 150);
-    sceneRef.current = scene;
+  // Game Logic
+  const gameDataRef = useRef({
+    playerPos: { x: 1, y: 1 },
+    bossPos: { x: 11, y: 11 },
+    bombs: [],
+    explosions: [],
+    coins: [],
+    powerUps: [],
+    keys: {}
+  });
 
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    camera.position.set(0, 10, 20);
-    camera.lookAt(0, 2, 0);
-    cameraRef.current = camera;
+  useEffect(() => {
+    if (gameState !== 'playing') return;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFShadowShadowMap;
-    containerRef.current.appendChild(renderer.domElement);
-    rendererRef.current = renderer;
+    const initializeGame = () => {
+      gameDataRef.current.coins = [];
+      for (let i = 0; i < 8; i++) {
+        let x, y;
+        do {
+          x = Math.floor(Math.random() * 11) + 1;
+          y = Math.floor(Math.random() * 11) + 1;
+        } while ((x === 1 && y === 1) || (x === 11 && y === 11));
+        gameDataRef.current.coins.push({ x, y, val: 100 });
+      }
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(30, 40, 30);
-    directionalLight.castShadow = true;
-    directionalLight.shadow.mapSize.width = 4096;
-    directionalLight.shadow.mapSize.height = 4096;
-    directionalLight.shadow.camera.left = -30;
-    directionalLight.shadow.camera.right = 30;
-    directionalLight.shadow.camera.top = 30;
-    directionalLight.shadow.camera.bottom = -30;
-    directionalLight.shadow.camera.far = 150;
-    scene.add(directionalLight);
-
-    const pointLight1 = new THREE.PointLight(0x667eea, 0.5);
-    pointLight1.position.set(15, 10, 15);
-    scene.add(pointLight1);
-    const pointLight2 = new THREE.PointLight(0x764ba2, 0.5);
-    pointLight2.position.set(-15, 10, -15);
-    scene.add(pointLight2);
-
-    const groundGeometry = new THREE.PlaneGeometry(30, 30);
-    const groundMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a2a4a,
-      metalness: 0.1,
-      roughness: 0.9
-    });
-    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-    ground.rotation.x = -Math.PI / 2;
-    ground.receiveShadow = true;
-    scene.add(ground);
-
-    const gridHelper = new THREE.GridHelper(30, 30, 0x444444, 0x222222);
-    gridHelper.position.y = 0.01;
-    scene.add(gridHelper);
-
-    const player = createPlayerModel();
-    player.position.set(gameDataRef.current.playerPos.x, 0, gameDataRef.current.playerPos.z);
-    playerRef.current = player;
-    scene.add(player);
-
-    const boss = createBossModel();
-    boss.position.set(gameDataRef.current.bossPos.x, 0, gameDataRef.current.bossPos.z);
-    bossRef.current = boss;
-    scene.add(boss);
-
-    gameDataRef.current.coins = [];
-    for (let i = 0; i < 10; i++) {
-      const coinGroup = new THREE.Group();
-      
-      const coinGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.08, 32);
-      const coinMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffd700,
-        metalness: 1,
-        roughness: 0.1
-      });
-      const coin = new THREE.Mesh(coinGeometry, coinMaterial);
-      coin.castShadow = true;
-      coin.receiveShadow = true;
-      coin.rotation.x = Math.PI / 2;
-      coinGroup.add(coin);
-
-      const glowGeometry = new THREE.CylinderGeometry(0.27, 0.27, 0.08, 32);
-      const glowMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffd700,
-        emissive: 0xffd700,
-        emissiveIntensity: 0.5,
-        transparent: true,
-        opacity: 0.3
-      });
-      const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-      glow.rotation.x = Math.PI / 2;
-      coinGroup.add(glow);
-
-      coinGroup.position.set(
-        Math.random() * 24 + 3,
-        0.5,
-        Math.random() * 24 + 3
-      );
-      scene.add(coinGroup);
-      gameDataRef.current.coins.push({
-        mesh: coinGroup,
-        x: coinGroup.position.x,
-        z: coinGroup.position.z,
-        collected: false
-      });
-    }
-
-    gameDataRef.current.powerUps = [];
-    const powerUpTypes = [
-      { name: 'shield', color: 0x2196F3, emissive: 0x1565c0 },
-      { name: 'speed', color: 0xFF9800, emissive: 0xe65100 },
-      { name: 'bomb', color: 0x9C27B0, emissive: 0x6a0dad }
-    ];
-    
-    for (let i = 0; i < 3; i++) {
-      const puGeometry = new THREE.OctahedronGeometry(0.35, 3);
-      const puMaterial = new THREE.MeshStandardMaterial({
-        color: powerUpTypes[i].color,
-        metalness: 0.7,
-        roughness: 0.3,
-        emissive: powerUpTypes[i].emissive,
-        emissiveIntensity: 0.5
-      });
-      const pu = new THREE.Mesh(puGeometry, puMaterial);
-      pu.castShadow = true;
-      pu.receiveShadow = true;
-      pu.position.set(
-        Math.random() * 24 + 3,
-        1,
-        Math.random() * 24 + 3
-      );
-      scene.add(pu);
-      gameDataRef.current.powerUps.push({
-        mesh: pu,
-        x: pu.position.x,
-        z: pu.position.z,
-        type: powerUpTypes[i].name,
-        collected: false
-      });
-    }
-
-    const keys = {};
-    const handleKeyDown = (e) => {
-      keys[e.key.toLowerCase()] = true;
-      if (e.key === ' ') {
-        e.preventDefault();
-        if (sceneRef.current && inventory.bomb > 0) {
-          placeBomb(sceneRef.current);
-        }
+      gameDataRef.current.powerUps = [];
+      const types = ['shield', 'speed', 'bomb'];
+      for (let i = 0; i < 3; i++) {
+        let x, y;
+        do {
+          x = Math.floor(Math.random() * 11) + 1;
+          y = Math.floor(Math.random() * 11) + 1;
+        } while ((x === 1 && y === 1) || (x === 11 && y === 11));
+        gameDataRef.current.powerUps.push({ x, y, type: types[i] });
       }
     };
+
+    const handleKeyDown = (e) => {
+      gameDataRef.current.keys[e.key.toLowerCase()] = true;
+      if (e.key === ' ') {
+        e.preventDefault();
+        placeBomb();
+      }
+    };
+
     const handleKeyUp = (e) => {
-      keys[e.key.toLowerCase()] = false;
+      gameDataRef.current.keys[e.key.toLowerCase()] = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    let animationId;
-    const clock = new THREE.Clock();
+    initializeGame();
 
-    const animate = () => {
-      animationId = requestAnimationFrame(animate);
-      const deltaTime = clock.getDelta();
+    let gameLoopId;
+    const gameLoop = setInterval(() => {
+      const speed = playerInventory.speed > 0 ? 2 : 1;
+      const keys = gameDataRef.current.keys;
 
-      const moveSpeed = inventory.speed > 0 ? 0.15 : 0.1;
-      if (keys['arrowup'] || keys['w']) gameDataRef.current.playerPos.z -= moveSpeed;
-      if (keys['arrowdown'] || keys['s']) gameDataRef.current.playerPos.z += moveSpeed;
-      if (keys['arrowleft'] || keys['a']) gameDataRef.current.playerPos.x -= moveSpeed;
-      if (keys['arrowright'] || keys['d']) gameDataRef.current.playerPos.x += moveSpeed;
+      if (keys['arrowup'] || keys['w']) gameDataRef.current.playerPos.y = Math.max(0, gameDataRef.current.playerPos.y - speed);
+      if (keys['arrowdown'] || keys['s']) gameDataRef.current.playerPos.y = Math.min(12, gameDataRef.current.playerPos.y + speed);
+      if (keys['arrowleft'] || keys['a']) gameDataRef.current.playerPos.x = Math.max(0, gameDataRef.current.playerPos.x - speed);
+      if (keys['arrowright'] || keys['d']) gameDataRef.current.playerPos.x = Math.min(12, gameDataRef.current.playerPos.x + speed);
 
-      gameDataRef.current.playerPos.x = Math.max(-14, Math.min(14, gameDataRef.current.playerPos.x));
-      gameDataRef.current.playerPos.z = Math.max(-14, Math.min(14, gameDataRef.current.playerPos.z));
-
-      player.position.x = gameDataRef.current.playerPos.x;
-      player.position.z = gameDataRef.current.playerPos.z;
-      player.position.y = Math.sin(clock.getElapsedTime() * 2) * 0.1;
-
+      // Boss AI
       const dx = gameDataRef.current.playerPos.x - gameDataRef.current.bossPos.x;
-      const dz = gameDataRef.current.playerPos.z - gameDataRef.current.bossPos.z;
-      const distance = Math.sqrt(dx * dx + dz * dz);
+      const dy = gameDataRef.current.playerPos.y - gameDataRef.current.bossPos.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance > 0.5) {
-        gameDataRef.current.bossPos.x += (dx / distance) * 0.08;
-        gameDataRef.current.bossPos.z += (dz / distance) * 0.08;
+        gameDataRef.current.bossPos.x += Math.sign(dx) * 0.1;
+        gameDataRef.current.bossPos.y += Math.sign(dy) * 0.1;
       }
 
-      gameDataRef.current.bossPos.x = Math.max(-14, Math.min(14, gameDataRef.current.bossPos.x));
-      gameDataRef.current.bossPos.z = Math.max(-14, Math.min(14, gameDataRef.current.bossPos.z));
+      gameDataRef.current.bossPos.x = Math.max(0, Math.min(12, gameDataRef.current.bossPos.x));
+      gameDataRef.current.bossPos.y = Math.max(0, Math.min(12, gameDataRef.current.bossPos.y));
 
-      boss.position.x = gameDataRef.current.bossPos.x;
-      boss.position.z = gameDataRef.current.bossPos.z;
-      boss.rotation.y += 0.01;
+      // Bombs
+      gameDataRef.current.bombs = gameDataRef.current.bombs.map(b => ({ ...b, timer: b.timer - 1 }));
+      const explodedBombs = gameDataRef.current.bombs.filter(b => b.timer <= 0);
+      gameDataRef.current.bombs = gameDataRef.current.bombs.filter(b => b.timer > 0);
 
-      gameDataRef.current.coins.forEach(coin => {
-        coin.mesh.rotation.z += 0.05;
-        coin.mesh.position.y = 0.5 + Math.sin(clock.getElapsedTime() * 2) * 0.2;
-
-        const cdx = player.position.x - coin.x;
-        const cdz = player.position.z - coin.z;
-        if (Math.sqrt(cdx * cdx + cdz * cdz) < 1.5 && !coin.collected) {
-          coin.collected = true;
-          scene.remove(coin.mesh);
-          
-          for (let i = 0; i < 15; i++) {
-            const particleGeometry = new THREE.SphereGeometry(0.08, 8, 8);
-            const particleMaterial = new THREE.MeshStandardMaterial({
-              color: 0xffd700,
-              emissive: 0xffd700,
-              emissiveIntensity: 0.8
-            });
-            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-            particle.position.copy(coin.mesh.position);
-            particle.castShadow = true;
-
-            const pvelocity = new THREE.Vector3(
-              (Math.random() - 0.5) * 0.3,
-              Math.random() * 0.3 + 0.2,
-              (Math.random() - 0.5) * 0.3
-            );
-
-            scene.add(particle);
-            gameDataRef.current.particles.push({ mesh: particle, velocity: pvelocity, life: 1 });
-          }
-
-          setScore(s => s + 100);
-          addNotification('💰 +$100', '#4CAF50');
-          playSound(800, 0.1);
+      const newExplosions = [];
+      explodedBombs.forEach(bomb => {
+        newExplosions.push({ x: bomb.x, y: bomb.y, timer: 2 });
+        playSound(500, 0.2);
+        for (let i = 1; i <= 2; i++) {
+          if (bomb.x + i < GRID_SIZE) newExplosions.push({ x: bomb.x + i, y: bomb.y, timer: 2 });
+          if (bomb.x - i >= 0) newExplosions.push({ x: bomb.x - i, y: bomb.y, timer: 2 });
+          if (bomb.y + i < GRID_SIZE) newExplosions.push({ x: bomb.x, y: bomb.y + i, timer: 2 });
+          if (bomb.y - i >= 0) newExplosions.push({ x: bomb.x, y: bomb.y - i, timer: 2 });
         }
       });
 
-      gameDataRef.current.powerUps.forEach(pu => {
-        pu.mesh.rotation.x += 0.02;
-        pu.mesh.rotation.y += 0.03;
-        pu.mesh.position.y = 1 + Math.sin(clock.getElapsedTime() * 3) * 0.3;
+      gameDataRef.current.explosions = [...gameDataRef.current.explosions, ...newExplosions];
+      gameDataRef.current.explosions = gameDataRef.current.explosions.map(e => ({ ...e, timer: e.timer - 1 })).filter(e => e.timer > 0);
 
-        const pudx = player.position.x - pu.x;
-        const pudz = player.position.z - pu.z;
-        if (Math.sqrt(pudx * pudx + pudz * pudz) < 1.5 && !pu.collected) {
-          pu.collected = true;
-          scene.remove(pu.mesh);
-
-          if (pu.type === 'shield') {
-            setInventory(prev => ({ ...prev, shield: 5 }));
-            addNotification('🛡️ Shield Activated!', '#2196F3');
-          } else if (pu.type === 'speed') {
-            setInventory(prev => ({ ...prev, speed: 8 }));
-            addNotification('⚡ Speed Boost!', '#FF9800');
-          } else {
-            setInventory(prev => ({ ...prev, bomb: prev.bomb + 3 }));
-            addNotification('🎯 +3 Bombs!', '#9C27B0');
-          }
-          setScore(s => s + 500);
-          playSound(1200, 0.15);
-        }
-      });
-
-      gameDataRef.current.bombs.forEach((bomb, idx) => {
-        bomb.mesh.scale.x = 1 + Math.sin(clock.getElapsedTime() * 8) * 0.2;
-        bomb.mesh.scale.y = bomb.mesh.scale.x;
-        bomb.mesh.scale.z = bomb.mesh.scale.x;
-        bomb.timer--;
-
-        if (bomb.timer <= 0) {
-          scene.remove(bomb.mesh);
-          gameDataRef.current.bombs.splice(idx, 1);
-          createExplosion(bomb.x, bomb.z, scene);
-        }
-      });
-
-      gameDataRef.current.explosions.forEach((exp, idx) => {
-        exp.mesh.scale.x *= 1.02;
-        exp.mesh.scale.y *= 1.02;
-        exp.mesh.scale.z *= 1.02;
-        exp.mesh.material.opacity -= 0.05;
-
-        if (exp.mesh.material.opacity <= 0) {
-          scene.remove(exp.mesh);
-          gameDataRef.current.explosions.splice(idx, 1);
-        }
-      });
-
-      gameDataRef.current.particles.forEach((particle, idx) => {
-        particle.mesh.position.add(particle.velocity);
-        particle.velocity.y -= 0.01;
-        particle.life -= 0.02;
-        particle.mesh.material.opacity = particle.life;
-
-        if (particle.life <= 0) {
-          scene.remove(particle.mesh);
-          gameDataRef.current.particles.splice(idx, 1);
-        }
-      });
-
-      setInventory(prev => ({
-        shield: Math.max(0, prev.shield - deltaTime),
-        speed: Math.max(0, prev.speed - deltaTime),
+      setPlayerInventory(prev => ({
+        shield: Math.max(0, prev.shield - 1),
+        speed: Math.max(0, prev.speed - 1),
         bomb: prev.bomb
       }));
-
-      renderer.render(scene, camera);
-    };
-
-    animate();
-
-    const handleResize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-    };
-
-    window.addEventListener('resize', handleResize);
+    }, 200);
 
     return () => {
-      cancelAnimationFrame(animationId);
+      clearInterval(gameLoopId);
+      clearInterval(gameLoop);
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('resize', handleResize);
-      if (containerRef.current && containerRef.current.contains(renderer.domElement)) {
-        containerRef.current.removeChild(renderer.domElement);
-      }
     };
-  };
+  }, [gameState, playerInventory]);
 
-  const createExplosion = (x, z, scene) => {
-    if (!scene) return;
-
-    const explosionGeometry = new THREE.SphereGeometry(2, 16, 16);
-    const explosionMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff8800,
-      transparent: true,
-      opacity: 0.9
-    });
-    const explosion = new THREE.Mesh(explosionGeometry, explosionMaterial);
-    explosion.position.set(x, 2, z);
-    scene.add(explosion);
-
-    gameDataRef.current.explosions.push({
-      mesh: explosion,
-      x,
-      z,
-      timer: 10
-    });
-
-    createExplosionParticles(x, z, scene);
-
-    const edx = bossRef.current.position.x - x;
-    const edz = bossRef.current.position.z - z;
-    if (Math.sqrt(edx * edx + edz * edz) < 3) {
-      setBossHealth(prev => Math.max(0, prev - 1));
-      setScore(s => s + 1000);
-      addNotification('💥 BOSS HIT! +$1000', '#FF5722');
-      playSound(600, 0.3);
-      if (bossHealth <= 1) {
-        setGameState('gameOver');
-      }
-    }
-
-    playSound(500, 0.2);
-  };
-
-  const placeBomb = (scene) => {
-    if (!scene || inventory.bomb <= 0) return;
-
-    const bombGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-    const bombMaterial = new THREE.MeshStandardMaterial({
-      color: 0x333333,
-      metalness: 0.8,
-      roughness: 0.2
-    });
-    const bomb = new THREE.Mesh(bombGeometry, bombMaterial);
-    bomb.position.set(gameDataRef.current.playerPos.x, 0.5, gameDataRef.current.playerPos.z);
-    bomb.castShadow = true;
-    bomb.receiveShadow = true;
-    scene.add(bomb);
-
+  const placeBomb = () => {
+    if (playerInventory.bomb <= 0) return;
     gameDataRef.current.bombs.push({
-      mesh: bomb,
       x: gameDataRef.current.playerPos.x,
-      z: gameDataRef.current.playerPos.z,
-      timer: 120
+      y: gameDataRef.current.playerPos.y,
+      timer: 60
     });
-
-    setInventory(prev => ({ ...prev, bomb: prev.bomb - 1 }));
+    setPlayerInventory(prev => ({ ...prev, bomb: prev.bomb - 1 }));
     addNotification('💣 Bomb placed!', '#FF9800');
     playSound(400, 0.1);
   };
 
-  const startGame = () => {
-    if (tempBossName.trim()) setBossName(tempBossName);
-    setScore(0);
-    setBossHealth(difficulty === 'hard' ? 7 : difficulty === 'easy' ? 3 : 5);
-    setInventory({ shield: 0, speed: 0, bomb: 3 });
-    gameDataRef.current.playerPos = { x: 0, z: 0 };
-    gameDataRef.current.bossPos = { x: 10, z: 10 };
-    gameDataRef.current.bombs = [];
-    gameDataRef.current.explosions = [];
-    gameDataRef.current.coins = [];
-    gameDataRef.current.powerUps = [];
-    gameDataRef.current.particles = [];
-    initRef.current = false;
-    setGameState('playing');
+  const renderBoard = () => {
+    const tiles = [];
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        const isWall = (x % 2 === 0 && y % 2 === 0) || (x === 0 || y === 0 || x === 12 || y === 12);
+        let content = null;
+        let bg = isWall ? '#2c2c2c' : '#e8f5e9';
+
+        if (gameDataRef.current.playerPos.x === x && gameDataRef.current.playerPos.y === y) {
+          content = '🧑';
+          if (playerInventory.shield > 0) bg = '#fff0d9';
+          if (playerInventory.speed > 0) bg = '#fff9e6';
+        } else if (gameDataRef.current.bossPos.x === x && gameDataRef.current.bossPos.y === y) {
+          content = '😠';
+        } else if (gameDataRef.current.bombs.some(b => b.x === x && b.y === y)) {
+          content = '💣';
+        } else if (gameDataRef.current.explosions.some(e => e.x === x && e.y === y)) {
+          content = '💥';
+          bg = '#ffcccc';
+        } else if (gameDataRef.current.coins.some(c => c.x === x && c.y === y)) {
+          content = '💰';
+        } else if (gameDataRef.current.powerUps.some(p => p.x === x && p.y === y)) {
+          const p = gameDataRef.current.powerUps.find(p => p.x === x && p.y === y);
+          content = p.type === 'shield' ? '🛡️' : p.type === 'speed' ? '⚡' : '🎯';
+        }
+
+        tiles.push(
+          <div
+            key={`${x}-${y}`}
+            style={{
+              position: 'absolute',
+              left: x * CELL_SIZE,
+              top: y * CELL_SIZE,
+              width: CELL_SIZE,
+              height: CELL_SIZE,
+              background: bg,
+              border: '2px solid #555',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px',
+              fontWeight: 'bold'
+            }}
+          >
+            {content}
+          </div>
+        );
+      }
+    }
+    return tiles;
   };
 
-  useEffect(() => {
-    if (gameState === 'playing') {
-      init3D();
-    }
-  }, [gameState]);
-
-  if (gameState === 'menu') {
+  // INTRO SCREEN
+  if (gameState === 'intro') {
     return (
       <div style={{
         minHeight: '100vh',
@@ -649,65 +302,25 @@ const EscapeTheBoss3DUltra = () => {
           width: '100%',
           background: 'white',
           borderRadius: '20px',
-          padding: '50px',
+          padding: '60px 40px',
           textAlign: 'center',
           boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
         }}>
-          <h1 style={{ fontSize: '56px', color: '#667eea', margin: '0 0 10px' }}>
-            🏢 ESCAPE THE BOSS 3D ULTRA 💣
+          <div style={{ fontSize: '80px', marginBottom: '20px' }}>🏢💣</div>
+          <h1 style={{ fontSize: '52px', color: '#333', margin: '0 0 15px', fontWeight: 'bold' }}>
+            ESCAPE THE BOSS
           </h1>
-          <p style={{ fontSize: '18px', color: '#666', marginBottom: '40px' }}>
-            The Most Advanced 3D Office Game Ever Created
+          <p style={{ fontSize: '20px', color: '#666', margin: '0 0 40px', lineHeight: '1.6' }}>
+            A thrilling story of survival in the office.
+            <br />
+            Can you escape your angry boss?
           </p>
 
-          <div style={{ marginBottom: '25px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>
-              👔 BOSS NAME
-            </label>
-            <input
-              type="text"
-              value={tempBossName}
-              onChange={(e) => setTempBossName(e.target.value)}
-              placeholder="Enter your boss's name..."
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '14px',
-                border: '2px solid #667eea',
-                borderRadius: '8px',
-                boxSizing: 'border-box',
-                outline: 'none'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '25px' }}>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 'bold', color: '#333', marginBottom: '8px' }}>
-              ⚙️ DIFFICULTY
-            </label>
-            <select
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                fontSize: '14px',
-                border: '2px solid #667eea',
-                borderRadius: '8px',
-                boxSizing: 'border-box'
-              }}
-            >
-              <option value="easy">🟢 Easy (3 HP)</option>
-              <option value="normal">🟡 Normal (5 HP)</option>
-              <option value="hard">🔴 Hard (7 HP)</option>
-            </select>
-          </div>
-
           <button
-            onClick={startGame}
+            onClick={startStory}
             style={{
               width: '100%',
-              padding: '15px',
+              padding: '18px',
               fontSize: '18px',
               fontWeight: 'bold',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
@@ -715,13 +328,13 @@ const EscapeTheBoss3DUltra = () => {
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              marginBottom: '12px',
+              marginBottom: '15px',
               transition: 'transform 0.2s'
             }}
             onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
             onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
           >
-            START 3D GAME 🎮
+            START ADVENTURE 🚀
           </button>
 
           <button
@@ -729,7 +342,7 @@ const EscapeTheBoss3DUltra = () => {
             style={{
               width: '100%',
               padding: '12px',
-              fontSize: '14px',
+              fontSize: '16px',
               background: soundOn ? '#4CAF50' : '#f44336',
               color: 'white',
               border: 'none',
@@ -742,104 +355,280 @@ const EscapeTheBoss3DUltra = () => {
           </button>
 
           <div style={{
-            marginTop: '30px',
+            marginTop: '40px',
             textAlign: 'left',
             background: '#f5f5f5',
-            padding: '20px',
-            borderRadius: '8px',
-            fontSize: '13px'
+            padding: '25px',
+            borderRadius: '12px',
+            fontSize: '14px',
+            color: '#555'
           }}>
-            <p style={{ fontWeight: 'bold', marginTop: 0 }}>✨ FEATURES:</p>
-            <p>🎨 Advanced 3D graphics with particles & animations</p>
-            <p>💫 Dynamic lighting & shadows</p>
-            <p>🎭 Animated characters</p>
-            <p>⬆️⬇️⬅️➡️ WASD - Move in 3D world | SPACE - Place bombs</p>
-            <p>💰 Collect coins & power-ups to escape!</p>
+            <p style={{ fontWeight: 'bold', marginTop: 0, fontSize: '16px' }}>📖 STORY MODE:</p>
+            <p>✓ Experience an engaging office escape story</p>
+            <p>✓ Follow the narrative from start to freedom</p>
+            <p>✓ Make strategic moves to defeat the boss</p>
+            <p>✓ Collect coins and power-ups to survive</p>
+            <p style={{ marginBottom: 0 }}>✓ Can you escape and win?</p>
           </div>
         </div>
       </div>
     );
   }
 
-  if (gameState === 'playing') {
+  // STORY SCREEN
+  if (gameState === 'story') {
+    const dialogue = storyDialogues[0];
+    const currentText = dialogue.dialogues[storyPhase];
+
     return (
-      <div ref={containerRef} style={{ width: '100%', height: '100vh', position: 'relative' }}>
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px',
+        fontFamily: "'Segoe UI', Arial, sans-serif",
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
         <div style={{
-          position: 'fixed',
-          top: '30px',
-          left: '30px',
-          color: 'white',
-          fontFamily: "'Segoe UI', Arial, sans-serif",
-          textShadow: '2px 2px 8px rgba(0,0,0,0.8)',
-          zIndex: 100,
-          background: 'rgba(0,0,0,0.5)',
-          padding: '20px',
-          borderRadius: '12px',
-          backdropFilter: 'blur(10px)'
+          maxWidth: '800px',
+          width: '100%',
+          background: 'white',
+          borderRadius: '20px',
+          padding: '50px 40px',
+          textAlign: 'center',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
         }}>
-          <h2 style={{ margin: '0 0 15px', fontSize: '28px' }}>💰 ${Math.round(score)}</h2>
-          <div style={{ fontSize: '16px', lineHeight: '1.8' }}>
-            <p style={{ margin: '5px 0' }}>❤️ Boss HP: {Array(Math.max(0, bossHealth)).fill('❤️').join('')}</p>
-            <p style={{ margin: '5px 0' }}>💣 Bombs: {Math.round(inventory.bomb)}</p>
-            <p style={{ margin: '5px 0' }}>🛡️ Shield: {Math.round(inventory.shield)}s</p>
-            <p style={{ margin: '5px 0' }}>⚡ Speed: {Math.round(inventory.speed)}s</p>
+          <div style={{ fontSize: '100px', marginBottom: '30px', animation: 'bounce 1s infinite' }}>
+            {storyPhase === 0 && '🏢'}
+            {storyPhase === 1 && '😠'}
+            {storyPhase === 2 && '💨'}
+            {storyPhase === 3 && '🤬'}
+            {storyPhase === 4 && '💣'}
+            {storyPhase === 5 && '🏃'}
+          </div>
+
+          <h2 style={{ fontSize: '32px', color: '#667eea', margin: '0 0 30px' }}>
+            {dialogue.title}
+          </h2>
+
+          <p style={{
+            fontSize: '22px',
+            color: '#333',
+            lineHeight: '1.8',
+            marginBottom: '40px',
+            minHeight: '100px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {currentText}
+          </p>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '12px',
+            marginBottom: '20px'
+          }}>
+            {storyPhase > 0 && (
+              <button
+                onClick={() => setStoryPhase(storyPhase - 1)}
+                style={{
+                  padding: '12px',
+                  fontSize: '14px',
+                  background: '#f5f5f5',
+                  border: '2px solid #667eea',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                ⬅️ Back
+              </button>
+            )}
+            <button
+              onClick={nextStoryPhase}
+              style={{
+                padding: '12px',
+                fontSize: '14px',
+                background: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                gridColumn: storyPhase === 0 ? '1 / -1' : 'auto'
+              }}
+            >
+              {storyPhase === storyDialogues[0].dialogues.length - 1 ? 'START GAME 🎮' : 'Next ➡️'}
+            </button>
+          </div>
+
+          <div style={{
+            background: '#f5f5f5',
+            padding: '15px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: '#666'
+          }}>
+            Phase {storyPhase + 1} of {storyDialogues[0].dialogues.length}
           </div>
         </div>
 
-        <div style={{ position: 'fixed', top: '30px', right: '30px', zIndex: 100 }}>
-          {notifications.map(notif => (
-            <div key={notif.id} style={{
-              background: notif.color,
-              color: 'white',
-              padding: '15px 25px',
-              borderRadius: '10px',
-              marginBottom: '12px',
-              fontWeight: 'bold',
-              fontSize: '15px',
-              animation: 'slideIn 0.3s ease',
-              boxShadow: '0 8px 20px rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(10px)'
-            }}>
-              {notif.text}
-            </div>
-          ))}
-        </div>
-
-        <div style={{
-          position: 'fixed',
-          bottom: '30px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          color: 'white',
-          textShadow: '2px 2px 8px rgba(0,0,0,0.8)',
-          textAlign: 'center',
-          fontSize: '16px',
-          fontFamily: "'Segoe UI', Arial, sans-serif",
-          zIndex: 100,
-          background: 'rgba(0,0,0,0.5)',
-          padding: '15px 30px',
-          borderRadius: '10px',
-          backdropFilter: 'blur(10px)'
-        }}>
-          ⬆️⬇️⬅️➡️ or WASD to move • SPACE to place bomb
-        </div>
-
         <style>{`
-          @keyframes slideIn {
-            from {
-              transform: translateX(400px);
-              opacity: 0;
-            }
-            to {
-              transform: translateX(0);
-              opacity: 1;
-            }
+          @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
           }
         `}</style>
       </div>
     );
   }
 
+  // GAMEPLAY SCREEN
+  if (gameState === 'playing') {
+    const healthBar = Array(Math.max(0, bossHealth)).fill('❤️').join('') || '💀';
+
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px',
+        fontFamily: "'Segoe UI', Arial, sans-serif"
+      }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          {/* HUD */}
+          <div style={{
+            background: 'white',
+            borderRadius: '15px',
+            padding: '20px',
+            marginBottom: '20px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '15px',
+              marginBottom: '15px'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>💰 OT Pay</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#4CAF50' }}>${Math.round(score)}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>❤️ Boss HP</div>
+                <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{healthBar}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>💣 Bombs</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FF9800' }}>{Math.round(playerInventory.bomb)}</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>📍 Level</div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#667eea' }}>{level}</div>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '10px'
+            }}>
+              <div style={{
+                background: playerInventory.shield > 0 ? '#fff3e0' : '#f5f5f5',
+                padding: '12px',
+                borderRadius: '8px',
+                textAlign: 'center',
+                border: '2px solid ' + (playerInventory.shield > 0 ? '#FF9800' : '#ddd')
+              }}>
+                <div style={{ fontSize: '20px' }}>🛡️</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>Shield</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{Math.round(playerInventory.shield)}s</div>
+              </div>
+              <div style={{
+                background: playerInventory.speed > 0 ? '#e3f2fd' : '#f5f5f5',
+                padding: '12px',
+                borderRadius: '8px',
+                textAlign: 'center',
+                border: '2px solid ' + (playerInventory.speed > 0 ? '#2196F3' : '#ddd')
+              }}>
+                <div style={{ fontSize: '20px' }}>⚡</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>Speed</div>
+                <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{Math.round(playerInventory.speed)}s</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Game Board */}
+          <div style={{
+            position: 'relative',
+            width: GRID_SIZE * CELL_SIZE,
+            height: GRID_SIZE * CELL_SIZE,
+            background: '#e8f5e9',
+            border: '4px solid #333',
+            margin: '0 auto 20px',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.2)'
+          }}>
+            {renderBoard()}
+          </div>
+
+          {/* Notifications */}
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            zIndex: 100
+          }}>
+            {notifications.map(notif => (
+              <div key={notif.id} style={{
+                background: notif.color,
+                color: 'white',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                marginBottom: '10px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+              }}>
+                {notif.text}
+              </div>
+            ))}
+          </div>
+
+          {/* Controls */}
+          <div style={{
+            background: 'white',
+            borderRadius: '15px',
+            padding: '20px',
+            textAlign: 'center',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}>
+            <p style={{ margin: '0 0 15px', color: '#666', fontSize: '14px' }}>
+              ⬆️⬇️⬅️➡️ or WASD to move • SPACE to place bomb
+            </p>
+            <button
+              onClick={() => setGameState('intro')}
+              style={{
+                padding: '12px 24px',
+                background: '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              ↩️ Back to Menu
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // GAME OVER
   return (
     <div style={{
       minHeight: '100vh',
@@ -860,7 +649,9 @@ const EscapeTheBoss3DUltra = () => {
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)'
       }}>
         <h1 style={{ fontSize: '64px', margin: '0 0 20px', color: '#333' }}>🎊 VICTORY! 🎊</h1>
-        <p style={{ fontSize: '22px', color: '#666', marginBottom: '30px' }}>You escaped from {bossName}!</p>
+        <p style={{ fontSize: '22px', color: '#666', marginBottom: '30px' }}>
+          You escaped from {bossName}!
+        </p>
         <div style={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           padding: '40px',
@@ -868,11 +659,11 @@ const EscapeTheBoss3DUltra = () => {
           marginBottom: '30px',
           color: 'white'
         }}>
-          <p style={{ fontSize: '16px', margin: '0 0 15px' }}>Total Earnings & Bonuses</p>
+          <p style={{ fontSize: '16px', margin: '0 0 15px' }}>Total OT Pay & Bonuses</p>
           <p style={{ fontSize: '56px', fontWeight: 'bold', margin: 0 }}>💰 ${Math.round(score)}</p>
         </div>
         <button
-          onClick={() => setGameState('menu')}
+          onClick={() => setGameState('intro')}
           style={{
             width: '100%',
             padding: '18px',
@@ -882,11 +673,8 @@ const EscapeTheBoss3DUltra = () => {
             color: 'white',
             border: 'none',
             borderRadius: '8px',
-            cursor: 'pointer',
-            transition: 'transform 0.2s'
+            cursor: 'pointer'
           }}
-          onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-          onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
         >
           Play Again 🎮
         </button>
@@ -895,4 +683,4 @@ const EscapeTheBoss3DUltra = () => {
   );
 };
 
-export default EscapeTheBoss3DUltra;
+export default EscapeTheBossStory;
