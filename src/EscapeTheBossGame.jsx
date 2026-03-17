@@ -6,11 +6,11 @@ const EscapeTheBossGame = () => {
   const GAME_SPEED = 200;
 
   const audioContextRef = useRef(null);
+  const gameStateRef = useRef('menu');
 
   const [gameState, setGameState] = useState('menu');
   const [bossName, setBossName] = useState('Mr. Boss');
   const [tempBossName, setTempBossName] = useState('');
-  const [difficulty, setDifficulty] = useState('normal');
   const [soundOn, setSoundOn] = useState(true);
   const [bossType, setBossType] = useState('angry');
   const [playerPos, setPlayerPos] = useState({ x: 1, y: 1 });
@@ -60,41 +60,37 @@ const EscapeTheBossGame = () => {
     }
   }, [soundOn]);
 
-  const generateCoins = (lvl) => {
-    const initialCoins = [];
-    const coinCount = 8 + lvl;
-    for (let i = 0; i < coinCount; i++) {
-      let x, y;
-      do {
-        x = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-        y = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-      } while ((x === 1 && y === 1) || (x === 11 && y === 11));
-      initialCoins.push({ x, y, value: 100 + Math.random() * 50 });
-    }
-    return initialCoins;
-  };
-
-  const generatePowerUps = () => {
-    const initialPowerUps = [];
-    const powerUpTypes = ['shield', 'speed', 'bomb'];
-    for (let i = 0; i < 3; i++) {
-      let x, y;
-      do {
-        x = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-        y = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
-      } while ((x === 1 && y === 1) || (x === 11 && y === 11));
-      initialPowerUps.push({ x, y, type: powerUpTypes[i] });
-    }
-    return initialPowerUps;
-  };
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
 
   useEffect(() => {
     if (gameState === 'playing') {
-      setCoins(generateCoins(level));
-      setPowerUps(generatePowerUps());
-      setBossHealth(3 + level);
+      const initialCoins = [];
+      for (let i = 0; i < 10; i++) {
+        let x, y;
+        do {
+          x = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
+          y = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
+        } while ((x === 1 && y === 1) || (x === 11 && y === 11));
+        initialCoins.push({ x, y, value: 100 + Math.random() * 50 });
+      }
+      setCoins(initialCoins);
+
+      const initialPowerUps = [];
+      const powerUpTypes = ['shield', 'speed', 'bomb'];
+      for (let i = 0; i < 3; i++) {
+        let x, y;
+        do {
+          x = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
+          y = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1;
+        } while ((x === 1 && y === 1) || (x === 11 && y === 11));
+        initialPowerUps.push({ x, y, type: powerUpTypes[i] });
+      }
+      setPowerUps(initialPowerUps);
+      setBossHealth(3);
     }
-  }, [gameState, level]);
+  }, [gameState]);
 
   useEffect(() => {
     if (gameState !== 'playing') return;
@@ -148,6 +144,8 @@ const EscapeTheBossGame = () => {
     if (gameState !== 'playing') return;
 
     const gameInterval = setInterval(() => {
+      setPlayerPos(p => p);
+
       setBossPos(prev => {
         let newX = prev.x;
         let newY = prev.y;
@@ -218,35 +216,27 @@ const EscapeTheBossGame = () => {
   useEffect(() => {
     if (gameState !== 'playing') return;
 
-    setCoins(prev => {
-      return prev.filter(coin => {
-        if (coin.x === playerPos.x && coin.y === playerPos.y) {
-          setScore(s => s + Math.round(coin.value));
-          setCombos(c => c + 1);
-          playSound(800, 0.1);
-          return false;
-        }
-        return true;
-      });
-    });
+    setCoins(prev => prev.filter(coin => {
+      if (coin.x === playerPos.x && coin.y === playerPos.y) {
+        setScore(s => s + Math.round(coin.value));
+        setCombos(c => c + 1);
+        playSound(800, 0.1);
+        return false;
+      }
+      return true;
+    }));
 
-    setPowerUps(prev => {
-      return prev.filter(pu => {
-        if (pu.x === playerPos.x && pu.y === playerPos.y) {
-          if (pu.type === 'shield') {
-            setPlayerInventory(prev => ({ ...prev, shield: 5 }));
-          } else if (pu.type === 'speed') {
-            setPlayerInventory(prev => ({ ...prev, speed: 8 }));
-          } else if (pu.type === 'bomb') {
-            setPlayerInventory(prev => ({ ...prev, bomb: prev.bomb + 3 }));
-          }
-          setScore(s => s + 500);
-          playSound(1200, 0.15);
-          return false;
-        }
-        return true;
-      });
-    });
+    setPowerUps(prev => prev.filter(pu => {
+      if (pu.x === playerPos.x && pu.y === playerPos.y) {
+        if (pu.type === 'shield') setPlayerInventory(prev => ({ ...prev, shield: 5 }));
+        else if (pu.type === 'speed') setPlayerInventory(prev => ({ ...prev, speed: 8 }));
+        else if (pu.type === 'bomb') setPlayerInventory(prev => ({ ...prev, bomb: prev.bomb + 3 }));
+        setScore(s => s + 500);
+        playSound(1200, 0.15);
+        return false;
+      }
+      return true;
+    }));
 
     let hitByExplosion = false;
     for (let exp of explosions) {
@@ -260,10 +250,8 @@ const EscapeTheBossGame = () => {
       if (playerInventory.shield > 0) {
         setPlayerInventory(prev => ({ ...prev, shield: 0 }));
         setScore(s => Math.max(0, s - 500));
-        playSound(200, 0.2);
       } else {
         setGameState('gameOver');
-        playSound(100, 0.5);
       }
     }
 
@@ -275,41 +263,23 @@ const EscapeTheBossGame = () => {
     }
 
     if (bossHitCount > 0) {
-      const newHealth = bossHealth - bossHitCount;
-      setBossHealth(newHealth);
+      setBossHealth(prev => Math.max(0, prev - bossHitCount));
       setScore(s => s + Math.round(1000 * bossHitCount * (1 + combos * 0.1)));
       playSound(600, 0.3);
-
-      if (newHealth <= 0) {
-        if (level < 3) {
-          setLevel(l => l + 1);
-          setBossPos({ x: 11, y: 11 });
-          setScore(s => s + 5000);
-          playSound(1000, 0.5);
-        } else {
-          setGameState('gameOver');
-        }
-      } else {
-        setBossPos({ x: 11, y: 11 });
-        setCombos(0);
-      }
+      setBossPos({ x: 11, y: 11 });
     }
 
     if (playerPos.x === bossPos.x && playerPos.y === bossPos.y) {
       if (playerInventory.shield > 0) {
         setPlayerInventory(prev => ({ ...prev, shield: 0 }));
-        playSound(200, 0.2);
       } else {
         setGameState('gameOver');
-        playSound(100, 0.5);
       }
     }
-  }, [playerPos, explosions, playerInventory, gameState, bossPos, bossHealth, combos, playSound]);
+  }, [playerPos, explosions, playerInventory, gameState, bossPos, combos, playSound]);
 
   const startGame = () => {
-    if (tempBossName.trim()) {
-      setBossName(tempBossName);
-    }
+    if (tempBossName.trim()) setBossName(tempBossName);
     setPlayerPos({ x: 1, y: 1 });
     setBossPos({ x: 11, y: 11 });
     setScore(0);
@@ -330,7 +300,6 @@ const EscapeTheBossGame = () => {
 
   const renderBoard = () => {
     const tiles = [];
-
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
         const isWall = (x % 2 === 0 && y % 2 === 0) || (x === 0 || y === 0 || x === GRID_SIZE - 1 || y === GRID_SIZE - 1);
@@ -356,25 +325,20 @@ const EscapeTheBossGame = () => {
         }
 
         tiles.push(
-          <div
-            key={`${x}-${y}`}
-            style={{
-              position: 'absolute',
-              left: x * CELL_SIZE,
-              top: y * CELL_SIZE,
-              width: CELL_SIZE,
-              height: CELL_SIZE,
-              background: backgroundColor,
-              border: '1px solid #ddd',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '20px',
-              fontWeight: 'bold'
-            }}
-          >
-            {cellContent}
-          </div>
+          <div key={`${x}-${y}`} style={{
+            position: 'absolute',
+            left: x * CELL_SIZE,
+            top: y * CELL_SIZE,
+            width: CELL_SIZE,
+            height: CELL_SIZE,
+            background: backgroundColor,
+            border: '1px solid #ddd',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '20px',
+            fontWeight: 'bold'
+          }}>{cellContent}</div>
         );
       }
     }
@@ -383,217 +347,53 @@ const EscapeTheBossGame = () => {
 
   if (gameState === 'menu') {
     return (
-      <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
-        <h1 style={{ textAlign: 'center', fontSize: '32px', marginBottom: '20px', color: '#333' }}>
-          🏢 ESCAPE THE BOSS 💣
-        </h1>
+      <div style={{ padding: '20px', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial' }}>
+        <h1 style={{ textAlign: 'center', fontSize: '32px', marginBottom: '20px', color: '#333' }}>🏢 ESCAPE THE BOSS 💣</h1>
 
         <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
           <p style={{ marginBottom: '10px', color: '#333', fontWeight: 'bold' }}>Boss Name:</p>
-          <input
-            type="text"
-            value={tempBossName}
-            onChange={(e) => setTempBossName(e.target.value)}
-            placeholder="Enter your boss name..."
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '4px',
-              border: '1px solid #ddd',
-              marginBottom: '15px',
-              boxSizing: 'border-box',
-              fontSize: '14px'
-            }}
-          />
+          <input type="text" value={tempBossName} onChange={(e) => setTempBossName(e.target.value)} placeholder="Enter boss name..." style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', marginBottom: '15px', boxSizing: 'border-box' }} />
 
           <p style={{ marginBottom: '10px', color: '#333', fontWeight: 'bold' }}>Boss Type:</p>
-          <select
-            value={bossType}
-            onChange={(e) => setBossType(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '4px',
-              border: '1px solid #ddd',
-              marginBottom: '15px',
-              boxSizing: 'border-box',
-              fontSize: '14px'
-            }}
-          >
-            {Object.entries(bossTypes).map(([key, boss]) => (
-              <option key={key} value={key}>
-                {boss.emoji} {boss.name}
-              </option>
-            ))}
+          <select value={bossType} onChange={(e) => setBossType(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ddd', marginBottom: '15px', boxSizing: 'border-box' }}>
+            {Object.entries(bossTypes).map(([key, boss]) => (<option key={key} value={key}>{boss.emoji} {boss.name}</option>))}
           </select>
 
-          <p style={{ marginBottom: '10px', color: '#333', fontWeight: 'bold' }}>Difficulty:</p>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '4px',
-              border: '1px solid #ddd',
-              marginBottom: '15px',
-              boxSizing: 'border-box',
-              fontSize: '14px'
-            }}
-          >
-            <option value="easy">Easy</option>
-            <option value="normal">Normal</option>
-            <option value="hard">Hard</option>
-          </select>
+          <button onClick={startGame} style={{ width: '100%', padding: '12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer' }}>START GAME 🎮</button>
 
-          <button
-            onClick={startGame}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              cursor: 'pointer',
-              marginBottom: '15px'
-            }}
-          >
-            START GAME 🎮
-          </button>
-
-          <button
-            onClick={() => setSoundOn(!soundOn)}
-            style={{
-              width: '100%',
-              padding: '10px',
-              background: '#f5f5f5',
-              color: '#333',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            {soundOn ? '🔊' : '🔇'} Sound {soundOn ? 'ON' : 'OFF'}
-          </button>
+          <button onClick={() => setSoundOn(!soundOn)} style={{ width: '100%', marginTop: '10px', padding: '10px', background: '#f5f5f5', color: '#333', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}>{soundOn ? '🔊' : '🔇'} Sound</button>
         </div>
 
         <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px' }}>
           <h2 style={{ margin: '0 0 15px', color: '#333' }}>🏆 Top Scores</h2>
-          {leaderboard.map((entry, idx) => (
-            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ddd', color: '#666' }}>
-              <span>#{idx + 1} {entry.name}</span>
-              <span style={{ fontWeight: 'bold' }}>${entry.score}</span>
-            </div>
-          ))}
-        </div>
-
-        <div style={{ marginTop: '20px', background: '#f5f5f5', padding: '15px', borderRadius: '8px', fontSize: '13px', color: '#666' }}>
-          <p style={{ fontWeight: 'bold', marginBottom: '10px' }}>HOW TO PLAY:</p>
-          <p>↑↓←→ or WASD - Move</p>
-          <p>SPACE - Place bomb</p>
-          <p>💰 Collect coins</p>
-          <p>🛡️ Shield - Protects once</p>
-          <p>⚡ Speed - Move faster</p>
-          <p>🎯 Bombs - More bombs</p>
+          {leaderboard.map((entry, idx) => (<div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #ddd', color: '#666' }}><span>#{idx + 1} {entry.name}</span><span>${entry.score}</span></div>))}
         </div>
       </div>
     );
   }
 
   if (gameState === 'playing') {
-    const bossDisplay = bossTypes[bossType];
     const healthBar = Array(Math.max(0, bossHealth)).fill('❤️').join('') || '💀';
-
     return (
-      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <div>
-            <h2 style={{ margin: '0 0 10px', color: '#333' }}>
-              Level {level} - {bossDisplay.emoji} {bossName}
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '13px', color: '#666' }}>
-              <div>💰 ${Math.round(score)}</div>
-              <div>🔥 Combo x{combos}</div>
-              <div>💣 Bombs: {playerInventory.bomb}</div>
-              <div>⏱️ Speed: {playerInventory.speed}s</div>
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', color: '#333' }}>
-              Boss HP: {healthBar}
-            </div>
-            <button
-              onClick={resetGame}
-              style={{
-                padding: '8px 16px',
-                background: '#f5f5f5',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              ↩️ Menu
-            </button>
-          </div>
+      <div style={{ padding: '20px', fontFamily: 'Arial' }}>
+        <div style={{ marginBottom: '20px' }}>
+          <h2 style={{ margin: '0 0 10px', color: '#333' }}>Level {level} - {bossTypes[bossType].emoji} {bossName}</h2>
+          <div style={{ fontSize: '13px', color: '#666' }}>💰 ${Math.round(score)} | 🔥 Combo x{combos} | 💣 Bombs: {playerInventory.bomb} | Boss HP: {healthBar}</div>
         </div>
-
-        <div style={{
-          position: 'relative',
-          width: GRID_SIZE * CELL_SIZE,
-          height: GRID_SIZE * CELL_SIZE,
-          background: '#f5f5f5',
-          border: '3px solid #333',
-          margin: '0 auto'
-        }}>
-          {renderBoard()}
-        </div>
-
-        <div style={{ marginTop: '20px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
-          Use arrow keys or WASD. Press SPACE to place bomb!
-        </div>
+        <div style={{ position: 'relative', width: GRID_SIZE * CELL_SIZE, height: GRID_SIZE * CELL_SIZE, background: '#f5f5f5', border: '3px solid #333', margin: '0 auto' }}>{renderBoard()}</div>
+        <div style={{ marginTop: '20px', fontSize: '12px', color: '#666', textAlign: 'center' }}>Arrow keys or WASD to move. SPACE to place bomb! <button onClick={resetGame} style={{ marginLeft: '20px', padding: '5px 10px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}>Menu</button></div>
       </div>
     );
   }
 
   const totalEarnings = Math.round(score);
-  const isVictory = level > 3;
-
   return (
-    <div style={{ padding: '20px', textAlign: 'center', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ fontSize: '48px', marginBottom: '20px', color: isVictory ? '#4CAF50' : '#333' }}>
-        {isVictory ? '🏆 YOU WON! 🏆' : 'GAME OVER!'}
-      </h1>
-
-      <div style={{ background: '#f5f5f5', padding: '30px', borderRadius: '8px', marginBottom: '20px' }}>
-        <p style={{ fontSize: '24px', marginBottom: '20px', color: '#333' }}>
-          {isVictory ? 'All bosses defeated!' : `You escaped from ${bossName}!`}
-        </p>
-        <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#4CAF50', marginBottom: '10px' }}>
-          💰 ${totalEarnings}
-        </p>
-        <p style={{ color: '#666', marginBottom: '20px' }}>
-          Total OT Pay & Bonus Earned
-        </p>
-
-        <button
-          onClick={resetGame}
-          style={{
-            width: '100%',
-            padding: '12px',
-            background: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            fontWeight: 'bold',
-            fontSize: '16px',
-            cursor: 'pointer'
-          }}
-        >
-          {isVictory ? 'Play Again 🎮' : 'Try Again 🎮'}
-        </button>
+    <div style={{ padding: '20px', textAlign: 'center', maxWidth: '500px', margin: '0 auto', fontFamily: 'Arial' }}>
+      <h1 style={{ fontSize: '48px', marginBottom: '20px', color: '#333' }}>GAME OVER!</h1>
+      <div style={{ background: '#f5f5f5', padding: '30px', borderRadius: '8px' }}>
+        <p style={{ fontSize: '24px', color: '#333' }}>You escaped from {bossName}!</p>
+        <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#4CAF50' }}>💰 ${totalEarnings}</p>
+        <button onClick={resetGame} style={{ width: '100%', marginTop: '20px', padding: '12px', background: '#4CAF50', color: 'white', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>Play Again 🎮</button>
       </div>
     </div>
   );
