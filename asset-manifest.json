@@ -1,8 +1,8 @@
 {
   "files": {
-    "main.js": "/boss-killer/static/js/main.06fae0f9.js",
-    "index.html": "/boss-killer/index.html",
-    "main.06fae0f9.js.map": "/boss-killer/static/js/main.06fae0f9.js.map"
+    "main.js": "/economics-by-ian/static/js/main.06fae0f9.js",
+    "index.html": "/economics-by-ian/index.html",
+    "main.06fae0f9.js.map": "/economics-by-ian/static/js/main.06fae0f9.js.map"
   },
   "entrypoints": [
     "static/js/main.06fae0f9.js"
